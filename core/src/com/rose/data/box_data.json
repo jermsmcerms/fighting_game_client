@@ -1,0 +1,69 @@
+{
+  "ryu" : {
+    "anchor" : {
+      "width" : 1,
+      "height" : 1,
+      "xL_offset" : 0,
+      "xR_offset" : 0,
+      "y_offset" : 0
+    },
+    "idle_walk" : {
+      "foot_box" : {
+        "width" : 47,
+        "height" : 34,
+        "xL_offset" : -25,
+        "xR_offset" : -22,
+        "y_offset" : 0
+      },
+      "chest_box" : {
+        "width" : 44,
+        "height" : 46,
+        "xL_offset" : -22,
+        "xR_offset" : -22,
+        "y_offset" : 34
+      },
+      "head_box" : {
+        "width" : 20,
+        "height" : 20,
+        "xL_offset" : -4,
+        "xR_offset" : -15,
+        "y_offset" : 71
+      }
+    },
+    "c_light_0" : {
+      "width" : "1",
+      "height" : "1",
+      "xL_offset" : "0",
+      "xR_offset" : "0",
+      "y_offset" : "0"
+    },
+    "c_light_1" : {
+      "width" : "1",
+      "height" : "1",
+      "xL_offset" : "0",
+      "xR_offset" : "0",
+      "y_offset" : "0"
+    },
+    "special_A_0" : {
+      "width" : "1",
+      "height" : "1",
+      "xL_offset" : "0",
+      "xR_offset" : "0",
+      "y_offset" : "0"
+    },
+    "special_A_1" : {
+      "width" : "1",
+      "height" : "1",
+      "xL_offset" : "0",
+      "xR_offset" : "0",
+      "y_offset" : "0"
+    },
+    "special_A_2" : {
+      "width" : "1",
+      "height" : "1",
+      "xL_offset" : "0",
+      "xR_offset" : "0",
+      "y_offset" : "0"
+    }
+  }
+}

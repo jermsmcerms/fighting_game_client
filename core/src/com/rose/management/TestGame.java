@@ -20,7 +20,7 @@ import java.util.zip.Adler32;
 
 public class TestGame implements GgpoCallbacks {
     private static final int NUM_PLAYERS = 2;
-    private static final int MAX_TEST_FRAMES = 300;
+    private static final int MAX_TEST_FRAMES = 3600; // One minute at 60fps
     private GameState gs;
     private final NonGameState ngs;
     private final SyncTest syncTest;
@@ -48,7 +48,7 @@ public class TestGame implements GgpoCallbacks {
             syncTest.doPoll();
             if(now >= next) {
                 runFrame();
-                next = now + (1000L / 60);
+                next = now + (1000000000L / 60);
                 currentFrame++;
             }
         }

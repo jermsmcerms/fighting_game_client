@@ -1,0 +1,271 @@
+ken_sprite_sheet.png
+size: 255, 1228
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+hadouken
+  rotate: false
+  xy: 0, 0
+  size: 74, 90
+  orig: 74, 90
+  offset: 0, 0
+  index: 0
+hadouken
+  rotate: false
+  xy: 76, 0
+  size: 90, 85
+  orig: 90, 85
+  offset: 0, 0
+  index: 1
+hadouken
+  rotate: false
+  xy: 0, 92
+  size: 96, 81
+  orig: 96, 85
+  offset: 0, 0
+  index: 2
+hadouken
+  rotate: false
+  xy: 98, 92
+  size: 114, 77
+  orig: 114, 77
+  offset: 0, 0
+  index: 3
+hadouken
+  rotate: false
+  xy: 0, 175
+  size: 114, 77
+  orig: 114, 77
+  offset: 0, 0
+  index: 4
+hadouken
+  rotate: false
+  xy: 116, 175
+  size: 65, 94
+  orig: 65, 94
+  offset: 0, 0
+  index: 5
+idle
+  rotate: false
+  xy: 183, 175
+  size: 67, 93
+  orig: 67, 93
+  offset: 0, 0
+  index: 0
+idle
+  rotate: false
+  xy: 0, 271
+  size: 66, 94
+  orig: 66, 94
+  offset: 0, 0
+  index: 1
+idle
+  rotate: false
+  xy: 68, 271
+  size: 66, 96
+  orig: 66, 96
+  offset: 0, 0
+  index: 2
+idle
+  rotate: false
+  xy: 136, 271
+  size: 64, 98
+  orig: 64, 98
+  offset: 0, 0
+  index: 3
+jab
+  rotate: false
+  xy: 0, 371
+  size: 77, 94
+  orig: 77, 94
+  offset: 0, 0
+  index: 0
+jab
+  rotate: false
+  xy: 79, 371
+  size: 106, 95
+  orig: 106, 95
+  offset: 0, 0
+  index: 1
+idle
+  rotate: false
+  xy: 187, 371
+  size: 66, 94
+  orig: 66, 94
+  offset: 0, 0
+  index: 4
+shouryuuReppa
+  rotate: false
+  xy: 0, 468
+  size: 68, 73
+  orig: 68, 73
+  offset: 0, 0
+  index: 0
+shouryuuReppa
+  rotate: false
+  xy: 70, 468
+  size: 67, 71
+  orig: 67, 71
+  offset: 0, 0
+  index: 1
+shouryuuReppa
+  rotate: false
+  xy: 139, 468
+  size: 67, 71
+  orig: 67, 71
+  offset: 0, 0
+  index: 2
+shouryuuReppa
+  rotate: false
+  xy: 0, 543
+  size: 78, 90
+  orig: 78, 90
+  offset: 0, 0
+  index: 3
+shouryuuReppa
+  rotate: false
+  xy: 80, 543
+  size: 78, 90
+  orig: 78, 90
+  offset: 0, 0
+  index: 4
+shouryuuReppa
+  rotate: false
+  xy: 160, 543
+  size: 63, 131
+  orig: 63, 131
+  offset: 0, 0
+  index: 5
+shouryuuReppa
+  rotate: false
+  xy: 0, 676
+  size: 62, 131
+  orig: 62, 131
+  offset: 0, 0
+  index: 6
+shouryuuReppa
+  rotate: false
+  xy: 64, 676
+  size: 55, 124
+  orig: 55, 124
+  offset: 0, 0
+  index: 7
+shouryuuReppa
+  rotate: false
+  xy: 121, 676
+  size: 55, 125
+  orig: 55, 125
+  offset: 0, 0
+  index: 8
+shouryuuReppa
+  rotate: false
+  xy: 178, 676
+  size: 62, 131
+  orig: 62, 131
+  offset: 0, 0
+  index: 9
+shouryuuReppa
+  rotate: false
+  xy: 0, 809
+  size: 62, 130
+  orig: 62, 130
+  offset: 0, 0
+  index: 10
+shouryuuReppa
+  rotate: false
+  xy: 64, 809
+  size: 62, 118
+  orig: 62, 118
+  offset: 0, 0
+  index: 11
+shouryuuReppa
+  rotate: false
+  xy: 128, 809
+  size: 62, 114
+  orig: 62, 114
+  offset: 0, 0
+  index: 12
+walk_backward
+  rotate: false
+  xy: 192, 809
+  size: 63, 89
+  orig: 63, 89
+  offset: 0, 0
+  index: 0
+walk_backward
+  rotate: false
+  xy: 0, 941
+  size: 61, 94
+  orig: 61, 94
+  offset: 0, 0
+  index: 1
+walk_backward
+  rotate: false
+  xy: 63, 941
+  size: 54, 94
+  orig: 54, 94
+  offset: 0, 0
+  index: 2
+walk_backward
+  rotate: false
+  xy: 119, 941
+  size: 54, 95
+  orig: 54, 95
+  offset: 0, 0
+  index: 3
+walk_backward
+  rotate: false
+  xy: 175, 941
+  size: 61, 95
+  orig: 61, 95
+  offset: 0, 0
+  index: 4
+walk_backward
+  rotate: false
+  xy: 0, 1038
+  size: 63, 93
+  orig: 63, 93
+  offset: 0, 0
+  index: 5
+walk_forward
+  rotate: false
+  xy: 65, 1038
+  size: 63, 89
+  orig: 63, 89
+  offset: 0, 0
+  index: 0
+walk_forward
+  rotate: false
+  xy: 130, 1038
+  size: 70, 93
+  orig: 70, 93
+  offset: 0, 0
+  index: 1
+walk_forward
+  rotate: false
+  xy: 0, 1133
+  size: 68, 95
+  orig: 68, 95
+  offset: 0, 0
+  index: 2
+walk_forward
+  rotate: false
+  xy: 70, 1133
+  size: 59, 95
+  orig: 59, 95
+  offset: 0, 0
+  index: 3
+walk_forward
+  rotate: false
+  xy: 131, 1133
+  size: 54, 94
+  orig: 54, 94
+  offset: 0, 0
+  index: 4
+walk_forward
+  rotate: false
+  xy: 187, 1133
+  size: 56, 93
+  orig: 56, 93
+  offset: 0, 0
+  index: 5

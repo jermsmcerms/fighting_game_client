@@ -14,25 +14,26 @@ import com.rose.network.SyncTest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.zip.Adler32;
 
 public class TestGame implements GgpoCallbacks {
     private static final int NUM_PLAYERS = 2;
+    private static final int MAX_TEST_FRAMES = 300;
     private GameState gs;
     private final NonGameState ngs;
     private final SyncTest syncTest;
-    private final Adler32 adler32CS;
     private long checksum;
+    private int currentFrame;
 
     public TestGame() {
         Fighter[] fighters = new Fighter[NUM_PLAYERS];
         fighters[0] = new Ryu(new Vector2(250 / 2f - 32 / 2f, 20), true);
         fighters[1] = new Ken(new Vector2(500 / 2f - 32 / 2f, 20), false);
         syncTest = new SyncTest(this);
-        gs = new GameState(fighters, 1);
+        gs = new GameState(fighters, 1, true);
         ngs = new NonGameState();
-        adler32CS = new Adler32();
 
         System.out.println("Begin sync test now...");
         runTestLoop();
@@ -41,19 +42,20 @@ public class TestGame implements GgpoCallbacks {
     public void runTestLoop() {
         long now, next;
         next = System.nanoTime();
-        // run the sync test for 1 minute
-        while(true) {
+
+        while(currentFrame <= MAX_TEST_FRAMES) {
             now = System.nanoTime();
             syncTest.doPoll();
             if(now >= next) {
                 runFrame();
                 next = now + (1000L / 60);
+                currentFrame++;
             }
         }
     }
 
     public void runFrame() {
-        int input = ThreadLocalRandom.current().nextInt();
+        int input = getRandomInput();
         GGPOErrorCode result = syncTest.addLocalInput(input);
         if(GGPOErrorCode.GGPOSucceeded(result)) {
             int[] remoteInputs = syncTest.syncInput();
@@ -64,34 +66,14 @@ public class TestGame implements GgpoCallbacks {
         drawCurrentFrame();
     }
 
-    private static int fletcher32_checksum(byte[] data) {
-        int sum1 = 0xff;
-        int sum2 = 0xff;
-        int index = 0;
-        int length = data.length;
-        while(length > 0) {
-            int t_length = length > 360 ? 360 : length;
-            length -= t_length;
-            do{
-                sum1 += data[index];
-                sum2 += sum1;
-            } while((--t_length) > 0);
-        }
-        sum1 = ((sum1 & 0xff) + (sum1 >> 16));
-        sum2 = ((sum2 & 0xff) + (sum2 >> 16));
-        return (sum2 << 16 | sum1);
-    }
-
     @Override
     public boolean beginGame(String name) {
         return true;
     }
 
     @Override
-    public SaveGameState saveGameState() {
-        byte[] gs_data = gs.saveGameState();
-        checksum = fletcher32_checksum(gs_data);
-        return new SaveGameState(gs_data, checksum);
+    public byte[] saveGameState() {
+        return gs.saveGameState();
     }
 
     @Override
@@ -100,6 +82,7 @@ public class TestGame implements GgpoCallbacks {
         try {
             ObjectInputStream is = new ObjectInputStream(in);
             gs = (GameState)is.readObject();
+            gs.loadGameState();
             return true;
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -151,5 +134,14 @@ public class TestGame implements GgpoCallbacks {
     private void drawCurrentFrame() {
         // do nothing since I don't care about drawing the game.
         // Kept to keep inline with how the game would run though.
+    }
+
+    private int getRandomInput() {
+        int retval = 1;
+        int randomInt = ThreadLocalRandom.current().nextInt(-1, 8);
+        if(randomInt == -1) {
+            return 0;
+        }
+        return retval << randomInt;
     }
 }

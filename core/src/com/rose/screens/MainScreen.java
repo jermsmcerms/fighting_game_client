@@ -102,7 +102,7 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
         camera.setToOrtho(false, 400, 240);
         buildFighters();
 
-        gs = new GameState(new Fighter[]{ryu, ken}, playerNumber);
+        gs = new GameState(new Fighter[]{ryu, ken}, playerNumber, false);
         ngs = new NonGameState();
         randomInput = getRandomInput();
     }
@@ -199,10 +199,8 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     }
 
     @Override
-    public SaveGameState saveGameState() {
-        byte[] gs_data = gs.saveGameState();
-        long checksum = fletcher32_checksum(gs_data);
-        return new SaveGameState(gs_data, checksum);
+    public byte[] saveGameState() {
+        return gs.saveGameState();
     }
 
     @Override
@@ -254,23 +252,5 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
                 }
         }
         return false;
-    }
-
-    private static int fletcher32_checksum(byte[] data) {
-        int sum1 = 0xff;
-        int sum2 = 0xff;
-        int index = 0;
-        int length = data.length;
-        while(length > 0) {
-            int t_length = Math.min(length, 360);
-            length -= t_length;
-            do{
-                sum1 += data[index];
-                sum2 += sum1;
-            } while((--t_length) > 0);
-        }
-        sum1 = ((sum1 & 0xff) + (sum1 >> 16));
-        sum2 = ((sum2 & 0xff) + (sum2 >> 16));
-        return (sum2 << 16 | sum1);
     }
 }

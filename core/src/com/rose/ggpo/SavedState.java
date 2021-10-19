@@ -8,7 +8,7 @@ public class SavedState {
     public class SavedFrame {
         public byte[] buf;
         public int cbuf;
-        public long checkSum;
+        public String checkSum;
         public int frame;
 
         public SavedFrame() {

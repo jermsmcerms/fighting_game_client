@@ -4,7 +4,7 @@ import com.rose.ggpo.GameInput;
 
 public class SavedInfo {
     public int frame;
-    public long checksum;
+    public String checksum;
     public byte[] buf;
     public int cbuf;
     public GameInput input;

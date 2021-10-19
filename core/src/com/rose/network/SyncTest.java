@@ -117,15 +117,15 @@ public class SyncTest {
                         SavedInfo local_frame = savedFrames.item(i);
                         System.out.println("index: " + i + " frame: " + local_frame.frame + " checksum: " + local_frame.checksum);
                     }
-                    while(true) {}
+                    System.exit(-1);
                 } else {
                     System.out.print("Frame numbers match\n");
                 }
 
-                long checksum = sync.getLastSavedFrame().checkSum;
-                if(info.checksum != checksum) {
+                String checksum = sync.getLastSavedFrame().checkSum;
+                if(info.checksum == checksum) {
                     logSaveStates(info);
-                    System.out.printf("Checksum for frame %d does not match saved (%d != %d)\n", frame, checksum, info.checksum);
+                    System.out.printf("Checksum for frame %d does not match saved (%s != %s)\n", frame, checksum, info.checksum);
                     SavedState.SavedFrame[] frames = sync.getAllSavedFrames();
                     System.out.println("printing sync saved checksums");
                     for(int i = 0; i < frames.length; i++) {
@@ -136,9 +136,9 @@ public class SyncTest {
                         SavedInfo local_frame = savedFrames.item(i);
                         System.out.println("index: " + i + " frame: " + local_frame.frame + " checksum: " + local_frame.checksum);
                     }
-                    while(true) {}
+                    System.exit(1);
                 } else {
-                    System.out.printf("Checksum %08d for frame %d matches.\n", checksum, info.frame);
+                    System.out.printf("Checksum %s for frame %d matches.\n", checksum, info.frame);
                 }
                 info.buf = (byte[])callbacks.freeBuffer(info.buf);
                 savedFrames.pop();

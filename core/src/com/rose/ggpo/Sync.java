@@ -1,7 +1,10 @@
 package com.rose.ggpo;
 
 import com.rose.management.SaveGameState;
+import com.rose.management.Utilities;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -73,11 +76,18 @@ public class Sync {
     public void saveCurrentFrame() {
         SavedState.SavedFrame state = savedState.frames[savedState.head];
         state.frame = frame_count;
-//        SaveGameState sgs = (SaveGameState)callbacks.saveGameState();
-//        state.cbuf = sgs.obj_data.length;
-//        state.buf = new byte[state.cbuf];
-//        System.arraycopy(sgs.obj_data, 0, state.buf, 0, state.cbuf);
-//        state.checkSum = sgs.checksum;
+        byte[] data = callbacks.saveGameState();
+        state.cbuf = data.length;
+        state.buf = new byte[state.cbuf];
+        System.arraycopy(data, 0, state.buf, 0, state.cbuf);
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            String checkSum = Utilities.bytesToHex(md.digest(state.buf));
+            System.out.println(checkSum);
+            state.checkSum = checkSum;
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
         savedState.head = (savedState.head + 1) % savedState.frames.length;
     }
 
@@ -107,7 +117,7 @@ public class Sync {
         }
         savedState.head = findSavedFrameIndex(frame);
         SavedState.SavedFrame state = savedState.frames[savedState.head];
-//        callbacks.loadFrame(state.buf, state.cbuf);
+        callbacks.loadFrame(state.buf, state.cbuf);
         frame_count = state.frame;
         savedState.head = (savedState.head + 1) % savedState.frames.length;
     }

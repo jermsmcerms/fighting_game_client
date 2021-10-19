@@ -281,4 +281,16 @@ public class Fighter implements Serializable {
     public void preventOverlap(Fighter fighter) {}
 
     public void keepInBounds() {}
+
+    public Vector2 getAnchorPoint() {
+        return anchor_point;
+    }
+
+    public AnimationState getAnimationState() {
+        return anim_state;
+    }
+
+    public float getAnimStateTime() {
+        return anim_state_time;
+    }
 }

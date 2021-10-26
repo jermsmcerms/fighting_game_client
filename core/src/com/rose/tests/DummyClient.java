@@ -33,13 +33,6 @@ public class DummyClient extends Udp.Callbacks {
         }
     }
 
-    public void synchronize() {
-        if(server_endpoint.getConnectState() == ConnectState.Connected) {
-            server_endpoint.synchronize();
-            synchronizing = true;
-        }
-    }
-
     public void incrementFrame() {
         doPoll();
     }
@@ -83,8 +76,10 @@ public class DummyClient extends Udp.Callbacks {
         while(event != null) {
             switch(event.getEventType()) {
                 case Connected:
-                    if(server_endpoint.getConnectState() != ConnectState.Syncing) {
-                        synchronize();
+                    if( server_endpoint.getConnectState() == ConnectState.Connected &&
+                        server_endpoint.getConnectState() != ConnectState.Syncing) {
+                        server_endpoint.synchronize();
+                        synchronizing = true;
                     }
                     break;
                 case Synchronized:

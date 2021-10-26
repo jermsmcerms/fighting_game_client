@@ -172,7 +172,7 @@ public class InputQueueTest {
 
     private void incrementFrame() {
         doPoll();
-        sync.incrementFrame();
+//        sync.incrementFrame();
     }
 
     private GGPOErrorCode addLocalInput(int input) {
@@ -182,9 +182,9 @@ public class InputQueueTest {
         }
 
         gameInput = new GameInput(-1, input);
-        if(!sync.addLocalInput(0, gameInput)) {
-            return GGPOErrorCode.GGPO_ERRORCODE_PREDICTION_THRESHOLD;
-        }
+//        if(!sync.addLocalInput(0, gameInput)) {
+//            return GGPOErrorCode.GGPO_ERRORCODE_PREDICTION_THRESHOLD;
+//        }
 
         return GGPOErrorCode.GGPO_OK;
     }

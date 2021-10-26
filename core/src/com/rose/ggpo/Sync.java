@@ -15,7 +15,7 @@ public class Sync {
 
     public Sync() {
         inRollBack = false;
-        frame_count = 0;
+        frame_count = -1; // TODO: change back to zero soon
         last_confirmed_frame = -1;
         max_prediction_frames = 10;
 
@@ -33,7 +33,7 @@ public class Sync {
 
     public boolean isInRollback() { return inRollBack; }
 
-    public boolean addLocalInput(int i, GameInput gameInput) {
+    public boolean addLocalInput(int index, int input) {
 //        int frames_behind = frame_count - last_confirmed_frame;
         // Comment out if you want to test input queue
 //        if( frame_count >= max_prediction_frames &&
@@ -45,10 +45,8 @@ public class Sync {
         if(frame_count == 0) {
             saveCurrentFrame();
         }
-//
-//        System.out.println("Sending undelayed local frame " + frame_count + " to queue " + i);
-//        gameInput.setFrame(frame_count);
-        input_queues.get(i).addInput(new GameInput(frame_count, gameInput.getInput()));
+
+        input_queues.get(index).addInput(new GameInput(frame_count, input));
         return true;
     }
 
@@ -61,8 +59,6 @@ public class Sync {
         }
     }
 
-
-
     public void addRemoteInput(int i, GameInput input) {
         input_queues.get(i).addInput(input);
     }
@@ -73,13 +69,9 @@ public class Sync {
     }
 
     public void saveCurrentFrame() {
-        System.out.println("Saving frame: " + frame_count + " index: " + savedState.head);
-        if(frame_count == 2) {
-            System.out.println("break;");
-        }
         SavedState.SavedFrame state = savedState.frames[savedState.head];
         state.frame = frame_count;
-        SaveGameState sgs = callbacks.saveGameState();
+//        SaveGameState sgs = callbacks.saveGameState();
 //        state.cbuf = sgs.obj_data.length;
 //        state.buf = new byte[state.cbuf];
 //        System.arraycopy(sgs.obj_data, 0, state.buf, 0, state.cbuf);

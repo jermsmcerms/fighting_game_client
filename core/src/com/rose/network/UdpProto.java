@@ -4,6 +4,7 @@ import com.rose.ggpo.GameInput;
 import com.rose.ggpo.IPollSink;
 import com.rose.ggpo.Poll;
 import com.rose.ggpo.RingBuffer;
+import com.rose.ggpo.TimeSync;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -17,7 +18,9 @@ public class UdpProto implements IPollSink {
     private static final int SYNC_FIRST_RETRY_INTERVAL  = 500000000;
     private static final int NUM_SYNC_PACKETS = 5;
     private static final int MAX_SEQ_DISTANCE = 32768;
-    private static final long RUNNING_RETRY_INTERVAL = 200000000L;
+    private static final long RUNNING_RETRY_INTERVAL    = 200000000L;
+    private static final long QUALITY_REPORT_INTERVAL   = 100000000L;
+    private static final long NETWORK_STATS_INTERVAL    = 100000000L;
     private int next_send_seq;
     private final RingBuffer<GameInput> pending_output;
     private final RingBuffer<QueueEntry> send_queue;
@@ -25,6 +28,7 @@ public class UdpProto implements IPollSink {
     private final SocketAddress server_addr;
     private final Udp udp;
     private final State state;
+    private final TimeSync time_sync;
     private ConnectState current_state;
     private int next_recv_seq;
     private boolean canStart;
@@ -41,6 +45,8 @@ public class UdpProto implements IPollSink {
     private GameInput last_acked_input;
     private UdpMsg.ConnectStatus local_connect_status;
     private boolean disconnect_event_sent;
+    private long round_trip_time;
+    private int local_frame_advantage;
 
     public UdpProto(Udp udp, Poll poll, String serverIp, int portNum) {
         this.udp = udp;
@@ -51,7 +57,7 @@ public class UdpProto implements IPollSink {
         remote_connect_status = new UdpMsg.ConnectStatus();
         server_addr = new InetSocketAddress(serverIp, portNum);
         state = new State();
-
+        time_sync = new TimeSync();
         canStart = false;
         next_send_seq = 0;
         next_recv_seq = 0;
@@ -137,6 +143,23 @@ public class UdpProto implements IPollSink {
                     sendPendingOutput();
                     state.running.last_input_packed_recv_time = now;
                 }
+
+                if( state.running.last_quality_report_time <= 0 ||
+                    state.running.last_quality_report_time +
+                        QUALITY_REPORT_INTERVAL < now) {
+                    UdpMsg msg = new UdpMsg(UdpMsg.MsgType.QualityReport);
+                    msg.payload.qualrpt.ping = System.nanoTime();
+                    msg.payload.qualrpt.frame_advantage = local_frame_advantage;
+                    sendMsg(msg);
+                    state.running.last_quality_report_time = now;
+                }
+
+                if( state.running.last_network_stats_interval <= 0 ||
+                    state.running.last_network_stats_interval +
+                        NETWORK_STATS_INTERVAL < now) {
+                    System.out.println("Update network stats");
+                    state.running.last_network_stats_interval = now;
+                }
                 break;
             case Disconnected:
                 break;
@@ -188,7 +211,7 @@ public class UdpProto implements IPollSink {
                 handled = onQualityReport(msg);
                 break;
             case 9:
-                handled = onQualityReply();
+                handled = onQualityReply(msg);
         }
 
         int seq = msg.hdr.sequenceNumber;
@@ -316,7 +339,7 @@ public class UdpProto implements IPollSink {
                     last_received_input.setFrame(current_frame);
                     UdpProtocolEvent event = new UdpProtocolEvent(UdpProtocolEvent.Event.Input);
                     event.input.input = new GameInput(last_received_input.getFrame(), last_received_input.getInput());
-//                    event_queue.push(event);
+                    event_queue.push(event);
                     state.running.last_input_packed_recv_time = System.nanoTime();
                 }
 
@@ -334,12 +357,13 @@ public class UdpProto implements IPollSink {
     private boolean onQualityReport(UdpMsg msg) {
         UdpMsg reply = new UdpMsg(UdpMsg.MsgType.QualityReply);
         reply.payload.qualrep.pong = msg.payload.qualrpt.ping;
-        remote_frame_advantage = msg.payload.qualrpt.frame_advantage;
         sendMsg(reply);
+        remote_frame_advantage = msg.payload.qualrpt.frame_advantage;
         return true;
     }
 
-    private boolean onQualityReply() {
+    private boolean onQualityReply(UdpMsg msg) {
+        round_trip_time = System.nanoTime() - msg.payload.qualrep.pong;
         return true;
     }
 
@@ -351,7 +375,7 @@ public class UdpProto implements IPollSink {
         if(udp != null) {
             if(current_state == ConnectState.Running) {
                 // TODO: increment time sync frame here
-//                timeSync.advance_frame(gameInput, local_frame_advantage, remote_frame_advantage);
+                time_sync.advance_frame(gameInput, local_frame_advantage, remote_frame_advantage);
                 pending_output.push(gameInput);
             }
             sendPendingOutput();
@@ -412,6 +436,16 @@ public class UdpProto implements IPollSink {
 
     public boolean isInitialized() {
         return udp == null;
+    }
+
+    public void setLocalFrameNumber(int local_frame) {
+        long remote_frame = last_received_input.getFrame() +
+            (round_trip_time * 60 / 1000000000L);
+        local_frame_advantage = (int)(remote_frame - local_frame);
+    }
+
+    public int recommendFrameDelay() {
+        return time_sync.recommend_frame_wait_duration(false);
     }
 }
 

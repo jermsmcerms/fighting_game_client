@@ -144,9 +144,9 @@ public class Client extends Udp.Callbacks {
         }
 
         gameInput = new GameInput(-1, input);
-        if(!sync.addLocalInput(0, gameInput)) {
-            return false;
-        }
+//        if(!sync.addLocalInput(0, gameInput)) {
+//            return false;
+//        }
         gameInput = sync.input_queues.get(0).getCurrentInput();
         if(gameInput.getFrame() != GameInput.NULL_FRAME) {
             local_connect_status.last_frame = gameInput.getFrame();
@@ -204,7 +204,7 @@ public class Client extends Udp.Callbacks {
     }
 
     public void incrementFrame() throws IOException {
-        sync.incrementFrame();
+//        sync.incrementFrame();
         doPoll(0);
     }
 

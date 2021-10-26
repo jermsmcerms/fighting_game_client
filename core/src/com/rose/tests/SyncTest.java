@@ -103,12 +103,10 @@ public class SyncTest {
     }
 
     public void incrementFrame() {
-        sync.incrementFrame();
+//        sync.incrementFrame();
         current_input = new GameInput(-1, -1);
         System.out.printf("End of frame(%d)\n", sync.frame_count);
-        if(sync.frame_count == 2) {
-            System.out.println("break");
-        }
+
         if(rolling_back) {
             return;
         }

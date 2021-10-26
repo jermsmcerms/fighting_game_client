@@ -1,10 +1,9 @@
 package com.rose.main;
 
 import com.badlogic.gdx.Game;
-import com.rose.management.TestGame;
+import com.rose.tests.TestGame;
 import com.rose.network.Client;
 import com.rose.management.AppPreferences;
-import com.rose.network.SyncTest;
 import com.rose.screens.EndScreen;
 import com.rose.screens.LoadingScreen;
 import com.rose.screens.MainScreen;
@@ -81,7 +80,6 @@ public class Rose extends Game {
 			case SYNCTEST: {
 				if (testGame == null) {
 					testGame = new TestGame();
-					testGame.runTestLoop();
 				}
 				break;
 			}

@@ -19,6 +19,10 @@ public class StaticBuffer<T> extends ArrayList<T> {
         elements.add(size++, element);
     }
 
+    public void updateSize(int size) {
+        this.size = size;
+    }
+
     @Override
     public T get(int i) {
         assert(i >= 0 && i < size);

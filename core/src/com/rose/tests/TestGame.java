@@ -1,4 +1,4 @@
-package com.rose.management;
+package com.rose.tests;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
@@ -9,52 +9,57 @@ import com.rose.ggpo.GGPOErrorCode;
 import com.rose.ggpo.GGPOEventCode;
 import com.rose.ggpo.GgpoCallbacks;
 import com.rose.ggpo.GgpoEvent;
-import com.rose.network.SyncTest;
+import com.rose.management.GameState;
+import com.rose.management.NonGameState;
+import com.rose.management.SaveGameState;
+import com.rose.management.Utilities;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.time.temporal.ChronoUnit;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.zip.Adler32;
 
+/*
+    The test game runs a suite of tests covering a range of possiblities such as input sync,
+    connection testing, network syncing, time syncing, etc. All tests are ran one at a time.
+    The pass/fail is shown at the end of each test.
+ */
 public class TestGame implements GgpoCallbacks {
     private static final int NUM_PLAYERS = 2;
-    private static final int MAX_TEST_FRAMES = 3600; // One minute at 60fps
+    private static final int MAX_TEST_FRAMES = 100; // 1 frame at 60fps
+    private static final int MAX_INPUT_QUEUE_TEST_FRAMES = 64;
+    private static final int MAX_SEND_INPUT_FRAMES = 900;
     private GameState gs;
     private final NonGameState ngs;
-    private final SyncTest syncTest;
-    private long checksum;
+    private InputQueueTest queueTest;
+    private SyncTest syncTest;
+    private NetworkSyncTest nst;
+    private ConnectTest connectTest;
+    private SendInputTest sendInputTest;
+    private String checksum;
     private int currentFrame;
 
     public TestGame() {
         Fighter[] fighters = new Fighter[NUM_PLAYERS];
         fighters[0] = new Ryu(new Vector2(250 / 2f - 32 / 2f, 20), true);
         fighters[1] = new Ken(new Vector2(500 / 2f - 32 / 2f, 20), false);
-        syncTest = new SyncTest(this);
         gs = new GameState(fighters, 1, true);
         ngs = new NonGameState();
-
-        System.out.println("Begin sync test now...");
-        runTestLoop();
+//        queueTest = new InputQueueTest(this);
+//        queueTest.runTest(MAX_INPUT_QUEUE_TEST_FRAMES);
+//        syncTest = new SyncTest(this);
+//        syncTest.runSyncTest(MAX_TEST_FRAMES);
+//        connectTest = new ConnectTest(this);
+//        connectTest.runConnectTest();
+//        nst = new NetworkSyncTest(this);
+//        nst.runSyncTest();
+        sendInputTest = new SendInputTest();
+        sendInputTest.runTest(MAX_SEND_INPUT_FRAMES);
     }
 
-    public void runTestLoop() {
-        long now, next;
-        next = System.nanoTime();
-
-        while(currentFrame <= MAX_TEST_FRAMES) {
-            now = System.nanoTime();
-            syncTest.doPoll();
-            if(now >= next) {
-                runFrame();
-                next = now + (1000000000L / 60);
-                currentFrame++;
-            }
-        }
-    }
-
-    public void runFrame() {
+    public void runSyncFrame() {
         int input = getRandomInput();
         GGPOErrorCode result = syncTest.addLocalInput(input);
         if(GGPOErrorCode.GGPOSucceeded(result)) {
@@ -66,14 +71,26 @@ public class TestGame implements GgpoCallbacks {
         drawCurrentFrame();
     }
 
+    public void runConnectRequestFrame() {
+
+    }
+
     @Override
     public boolean beginGame(String name) {
         return true;
     }
 
     @Override
-    public byte[] saveGameState() {
-        return gs.saveGameState();
+    public SaveGameState saveGameState() {
+        byte[] data = gs.saveGameState();
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            this.checksum = Utilities.bytesToHex(md.digest(data));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        return new SaveGameState(data, checksum);
     }
 
     @Override
@@ -97,10 +114,7 @@ public class TestGame implements GgpoCallbacks {
 
     @Override
     public Object freeBuffer(Object buffer) {
-        if(buffer != null) {
-            buffer = null;
-        }
-        return buffer;
+        return null;
     }
 
     @Override
@@ -112,7 +126,7 @@ public class TestGame implements GgpoCallbacks {
 
     @Override
     public boolean onEvent(GgpoEvent event) {
-        if (event.getCode() == GGPOEventCode.GGPO_EVENTCODE_CONNECTED_TO_PEER) {
+        if (event.getCode() == GGPOEventCode.GGPO_EVENTCODE_CONNECTED_TO_SERVER) {
             ngs.setConnectState(event.connected.playerHandle, NonGameState.PlayerConnectState.SYNCHRONIZING);
         }
         return false;
@@ -121,7 +135,7 @@ public class TestGame implements GgpoCallbacks {
     private void advanceFrame(float delta, int[] inputs) {
         gs.update(delta, inputs);
         ngs.now.frameNumber = gs.getFrameNumber();
-        ngs.now.checksum = this.checksum;
+        ngs.now.checksum = this.checksum; // <-- always "". May still need to calculate checksum in GGPOCallbacks implementations.
         if((gs.getFrameNumber() % 90) == 0) {
             ngs.periodic = ngs.now;
         }

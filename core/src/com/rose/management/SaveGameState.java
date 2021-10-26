@@ -2,9 +2,9 @@ package com.rose.management;
 
 public class SaveGameState {
     public byte[] obj_data;
-    public long checksum;
+    public String checksum;
 
-    public SaveGameState(byte[] obj_data, long checksum) {
+    public SaveGameState(byte[] obj_data, String checksum) {
         this.obj_data = obj_data;
         this.checksum = checksum;
     }

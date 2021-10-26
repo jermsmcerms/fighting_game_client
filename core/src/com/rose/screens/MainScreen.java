@@ -1,7 +1,6 @@
 package com.rose.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
@@ -9,13 +8,13 @@ import com.badlogic.gdx.math.Vector2;
 import com.rose.actors.Fighter;
 import com.rose.actors.Ken;
 import com.rose.actors.Ryu;
-import com.rose.ggpo.GGPOEventCode;
 import com.rose.ggpo.GgpoCallbacks;
 import com.rose.ggpo.GgpoEvent;
 import com.rose.main.Rose;
 import com.rose.management.GameState;
 import com.rose.management.NonGameState;
 import com.rose.management.SaveGameState;
+import com.rose.management.Utilities;
 import com.rose.network.Client;
 import com.rose.ui.MatchUI;
 import com.rose.ui.TouchControlsUI;
@@ -23,7 +22,8 @@ import com.rose.ui.TouchControlsUI;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.Arrays;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MainScreen extends ScreenBase implements GgpoCallbacks {
@@ -46,6 +46,7 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     private NonGameState ngs;
 
     private int randomInput;
+    private String checksum;
 
     public MainScreen(Rose parent) {
         super(parent);
@@ -90,7 +91,7 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
 
         if(now >= next) {
             runFrame(delta);
-            now = next + (1000/60);
+            now = next + (1000000000/60);
         }
     }
 
@@ -111,11 +112,12 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
         super.render(delta);
         int input = 0;
         if(DEBUG) {
-            if(playerNumber == 1) {
-                randomInput = ThreadLocalRandom.current().nextInt(3);
-            } else if (playerNumber == 2) {
-                randomInput = 0;
-            }
+//            if(playerNumber == 1) {
+//                randomInput = ThreadLocalRandom.current().nextInt(3);
+//            } else if (playerNumber == 2) {
+//                randomInput = 0;
+//            }
+            randomInput =  ThreadLocalRandom.current().nextInt(3);
         } else {
             input = touchInputUI.getInput();
         }
@@ -128,10 +130,10 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
                 result = client.addLocalInput(input);
             }
             if (result) {
-                inputs = client.syncInput();
-                if (inputs != null) {
-                    advanceFrame(delta, inputs);
-                }
+//                inputs = client.syncInput();
+//                if (inputs != null) {
+//                    advanceFrame(delta, inputs);
+//                }
             }
         } else {
                 inputs = new int[]{input, 0};
@@ -160,7 +162,11 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
         // player 1 is always ryu
         // player 2 is always ken
         gs.update(delta, inputs);
-
+        ngs.now.frameNumber = gs.getFrameNumber();
+        ngs.now.checksum = this.checksum; // <-- always "". May still need to calculate checksum in GGPOCallbacks implementations.
+        if((gs.getFrameNumber() % 90) == 0) {
+            ngs.periodic = ngs.now;
+        }
         if(!trainingMode) {
             try {
                 client.incrementFrame();
@@ -199,8 +205,16 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     }
 
     @Override
-    public byte[] saveGameState() {
-        return gs.saveGameState();
+    public SaveGameState saveGameState() {
+        byte[] data = gs.saveGameState();
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            this.checksum = Utilities.bytesToHex(md.digest(data));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        return new SaveGameState(data, checksum);
     }
 
     @Override
@@ -240,12 +254,11 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     @Override
     public boolean onEvent(GgpoEvent event) {
         switch(event.getCode()){
-            case GGPO_EVENTCODE_CONNECTED_TO_PEER:
+            case GGPO_EVENTCODE_CONNECTED_TO_SERVER:
                 ngs.setConnectState(event.connected.playerHandle, NonGameState.PlayerConnectState.SYNCHRONIZING);
                 break;
             case GGPO_EVENTCODE_TIMESYNC:
                 try {
-                    System.out.println("sleeping for " +((long) event.timeSync.frames_ahead * (1000/60)) + " frames");
                     Thread.sleep((long) event.timeSync.frames_ahead * (1000/60));
                 } catch (InterruptedException e) {
                     e.printStackTrace();

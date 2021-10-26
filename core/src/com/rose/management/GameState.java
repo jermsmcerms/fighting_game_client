@@ -34,6 +34,7 @@ public class GameState implements Serializable {
                 fighters[0].update(delta, inputs[0]);
                 fighters[1].update(delta, inputs[1]);
             } else if (playerNumber == 2) {
+
                 fighters[0].update(delta, inputs[1]);
                 fighters[1].update(delta, inputs[0]);
             }
@@ -47,18 +48,6 @@ public class GameState implements Serializable {
     }
 
     public byte[] saveGameState() {
-        System.out.println(
-            "Saving game state:\n" +
-            "Frame: " + frameCount + "\n" +
-            "Fighters:\n" +
-            "   Ryu\n" +
-            "       position: " + fighters[0].getBoxes()[0].getX() + "\n" +
-            "       anchor point: " + fighters[0].getAnchorPoint() + "\n" +
-            "       health: " + fighters[0].getHealth() + "\n" +
-            "       anim state: " + fighters[0].getAnimationState() + "\n" +
-            "       anim state time: " + fighters[0].getAnimStateTime() + "\n"
-        );
-
         byte[] data = null;
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             ObjectOutputStream out;
@@ -73,17 +62,6 @@ public class GameState implements Serializable {
     }
 
     public void loadGameState() {
-        System.out.println(
-            "Loading game state:\n" +
-            "Frame: " + frameCount + "\n" +
-            "Fighters:\n" +
-            "   Ryu\n" +
-            "       position: " + fighters[0].getBoxes()[0].getX() + "\n" +
-            "       anchor point: " + fighters[0].getAnchorPoint() + "\n" +
-            "       health: " + fighters[0].getHealth() + "\n" +
-            "       anim state: " + fighters[0].getAnimationState() + "\n" +
-            "       anim state time: " + fighters[0].getAnimStateTime() + "\n"
-        );
     }
 
     public int getFrameNumber() {

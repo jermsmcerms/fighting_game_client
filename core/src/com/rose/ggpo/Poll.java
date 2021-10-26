@@ -1,5 +1,8 @@
 package com.rose.ggpo;
 
+import java.util.HashMap;
+import java.util.Iterator;
+
 public class Poll implements IPollSink {
     private static final int INFINITE = Integer.MAX_VALUE;
     private static final int MAX_POLLABLE_HANDLES = 64;
@@ -28,7 +31,12 @@ public class Poll implements IPollSink {
         loopSinks.push_back(new PollSinkCb(sink, cookie));
     }
 
-    // TODO: pump all of the sinks and ruturned when the pump has finished.
+    public void unRegisterLoop(Object cookie) {
+        loopSinks.removeIf(next -> next.cookie.equals(cookie));
+        loopSinks.updateSize(-1);
+    }
+
+    // TODO: pump all of the sinks and returned when the pump has finished.
     public boolean pump(int timeout) {
         int i, res;
         boolean finished = false;

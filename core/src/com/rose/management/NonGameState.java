@@ -28,6 +28,6 @@ public class NonGameState {
 
     public static class ChecksumInfo {
         public int frameNumber;
-        public long checksum;
+        public String checksum;
     }
 }

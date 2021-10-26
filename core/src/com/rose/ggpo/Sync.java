@@ -1,12 +1,8 @@
 package com.rose.ggpo;
 
 import com.rose.management.SaveGameState;
-import com.rose.management.Utilities;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Sync {
     private final int max_prediction_frames;
@@ -25,7 +21,7 @@ public class Sync {
 
         input_queues = new ArrayList<InputQueue>(2);
         for(int i = 0; i < 2; i++) {
-            input_queues.add(new InputQueue(i));
+            input_queues.add(new InputQueue());
         }
 
         savedState = new SavedState();
@@ -38,18 +34,21 @@ public class Sync {
     public boolean isInRollback() { return inRollBack; }
 
     public boolean addLocalInput(int i, GameInput gameInput) {
-        int frames_behind = frame_count - last_confirmed_frame;
-        if( frame_count >= max_prediction_frames &&
-            frames_behind >= max_prediction_frames) {
-            return false;
-        }
+//        int frames_behind = frame_count - last_confirmed_frame;
+        // Comment out if you want to test input queue
+//        if( frame_count >= max_prediction_frames &&
+//            frames_behind >= max_prediction_frames) {
+//            System.out.println("rejecting input from emulator: reached prediction barrier");
+//            return false;
+//        }
 
         if(frame_count == 0) {
             saveCurrentFrame();
         }
-
-        gameInput.setFrame(frame_count);
-        input_queues.get(i).addInput(gameInput);
+//
+//        System.out.println("Sending undelayed local frame " + frame_count + " to queue " + i);
+//        gameInput.setFrame(frame_count);
+        input_queues.get(i).addInput(new GameInput(frame_count, gameInput.getInput()));
         return true;
     }
 
@@ -74,20 +73,17 @@ public class Sync {
     }
 
     public void saveCurrentFrame() {
+        System.out.println("Saving frame: " + frame_count + " index: " + savedState.head);
+        if(frame_count == 2) {
+            System.out.println("break;");
+        }
         SavedState.SavedFrame state = savedState.frames[savedState.head];
         state.frame = frame_count;
-        byte[] data = callbacks.saveGameState();
-        state.cbuf = data.length;
-        state.buf = new byte[state.cbuf];
-        System.arraycopy(data, 0, state.buf, 0, state.cbuf);
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            String checkSum = Utilities.bytesToHex(md.digest(state.buf));
-            System.out.println(checkSum);
-            state.checkSum = checkSum;
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
+        SaveGameState sgs = callbacks.saveGameState();
+//        state.cbuf = sgs.obj_data.length;
+//        state.buf = new byte[state.cbuf];
+//        System.arraycopy(sgs.obj_data, 0, state.buf, 0, state.cbuf);
+//        state.checkSum = sgs.checksum;
         savedState.head = (savedState.head + 1) % savedState.frames.length;
     }
 
@@ -102,6 +98,7 @@ public class Sync {
         int framecount = frame_count;
         int count = frame_count - seek_to;
         inRollBack = true;
+        System.out.println("rolling back " + framecount + " frames");
         loadFrame(seek_to);
         resetPrediction(frame_count);
         for(int i = 0; i < count; i++) {
@@ -117,7 +114,7 @@ public class Sync {
         }
         savedState.head = findSavedFrameIndex(frame);
         SavedState.SavedFrame state = savedState.frames[savedState.head];
-        callbacks.loadFrame(state.buf, state.cbuf);
+//        callbacks.loadFrame(state.buf, state.cbuf);
         frame_count = state.frame;
         savedState.head = (savedState.head + 1) % savedState.frames.length;
     }
@@ -138,7 +135,7 @@ public class Sync {
         }
     }
 
-    private int checkSimulationConsistency() {
+    public int checkSimulationConsistency() {
         int first_incorrect_frame = GameInput.NULL_FRAME;
         for(int i = 0; i < 2; i++) {
             int incorrect = input_queues.get(i).getFirstIncorrectFrame();
@@ -165,16 +162,33 @@ public class Sync {
     }
 
     public int[] syncInputs() {
-        GameInput[] inputs = new GameInput[2];
-        int[] syncedInputs;
-        for(int i = 0; i < 2; i++) {
-            inputs[i] = input_queues.get(i).getInput(frame_count);
-            if(inputs[i] == null) { return null; }
+//        GameInput[] inputs = new GameInput[2];
+//        int[] syncedInputs;
+//        for(int i = 0; i < 2; i++) {
+//            inputs[i] = input_queues.get(i).getInput(frame_count);
+//            if(inputs[i] == null) { return null; }
+//        }
+//        syncedInputs = new int[inputs.length];
+//        for (int i = 0; i < 2; i++) {
+//            syncedInputs[i] = inputs[i].getInput();
+//        }
+//        return syncedInputs;
+        int[] inputs = new int[2];
+        inputs[0] = -1;
+        inputs[1] = -1;
+
+        for(int i = 0; i < inputs.length; i++) {
+             inputs[i] = input_queues.get(i).getInput(frame_count).getInput();
         }
-        syncedInputs = new int[inputs.length];
-        for (int i = 0; i < 2; i++) {
-            syncedInputs[i] = inputs[i].getInput();
-        }
-        return syncedInputs;
+
+        return inputs;
+    }
+
+    public void setFrameDelay(int queue, int frameDelay) {
+        input_queues.get(queue).setFrameDelay(frameDelay);
+    }
+
+    public ArrayList<InputQueue> getInputQueue() {
+        return input_queues;
     }
 }

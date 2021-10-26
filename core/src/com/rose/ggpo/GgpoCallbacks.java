@@ -1,8 +1,10 @@
 package com.rose.ggpo;
 
+import com.rose.management.SaveGameState;
+
 public interface GgpoCallbacks {
     boolean beginGame(String name);
-    byte[] saveGameState();
+    SaveGameState saveGameState();
     boolean loadFrame(byte[] buffer, int length);
     boolean logGameState(String filename, String buffer);
     Object freeBuffer(Object buffer); // <--- probably don't need cos java

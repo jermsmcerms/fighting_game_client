@@ -4,78 +4,101 @@ import com.rose.ggpo.GameInput;
 import com.rose.ggpo.IPollSink;
 import com.rose.ggpo.Poll;
 import com.rose.ggpo.RingBuffer;
-import com.rose.ggpo.TimeSync;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class UdpProto implements IPollSink {
+    /* Intervals are measured in nano seconds. 1ms = 1,000,000 ns */
+    private static final long SYNC_RETRY_INTERVAL       = 2000000000L;
+    private static final long CONNECT_RETRY_INTERVAL    = 2000000000L; // 2000 ms = 2 billion ns
+    private static final int SYNC_FIRST_RETRY_INTERVAL  = 500000000;
     private static final int NUM_SYNC_PACKETS = 5;
     private static final int MAX_SEQ_DISTANCE = 32768;
-    private static final long QUALITY_REPORT_INTERVAL = 1000000000L;
+    private static final long RUNNING_RETRY_INTERVAL = 200000000L;
     private int next_send_seq;
-    private RingBuffer<GameInput> pending_output;
-    private RingBuffer<QueueEntry> send_queue;
-    private RingBuffer<UdpProtocolEvent> event_queue;
-    private SocketAddress server_addr;
-    private Udp udp;
-    private int disconnect_timeout;
-    private int disconnect_notify_start;
-    private State state;
+    private final RingBuffer<GameInput> pending_output;
+    private final RingBuffer<QueueEntry> send_queue;
+    private final RingBuffer<UdpProtocolEvent> event_queue;
+    private final SocketAddress server_addr;
+    private final Udp udp;
+    private final State state;
     private ConnectState current_state;
     private int next_recv_seq;
     private boolean canStart;
     private int playerNumber;
-    private UdpMsg.ConnectStatus remote_connect_status;
-    private int local_frame_advantage;
-    private long round_trip_time;
+    private final UdpMsg.ConnectStatus remote_connect_status;
     private GameInput last_received_input;
-    private TimeSync timeSync;
     private int remote_frame_advantage;
+    private long last_send_time;
+    private int remote_magic_number;
+    private int magic_number;
+    private boolean connected;
+    private boolean disconnect_notify_sent;
+    private GameInput last_sent_input;
+    private GameInput last_acked_input;
+    private UdpMsg.ConnectStatus local_connect_status;
+    private boolean disconnect_event_sent;
 
-    public UdpProto(Udp udp, Poll poll, String serverIp, int portNum, int disconnect_timeout, int disconnect_notify_start) {
+    public UdpProto(Udp udp, Poll poll, String serverIp, int portNum) {
         this.udp = udp;
-        this.disconnect_timeout = disconnect_timeout;
-        this.disconnect_notify_start = disconnect_notify_start;
-        pending_output = new RingBuffer<>(64);
-        send_queue = new RingBuffer<>(64);
-        event_queue = new RingBuffer<>(64);
-        next_send_seq = 0;
-        server_addr = new InetSocketAddress(serverIp, portNum);
         poll.registerLoop(this);
-
+        event_queue = new RingBuffer<>(64);
+        send_queue = new RingBuffer<>(64);
+        pending_output = new RingBuffer<>(64);
+        remote_connect_status = new UdpMsg.ConnectStatus();
+        server_addr = new InetSocketAddress(serverIp, portNum);
         state = new State();
 
+        canStart = false;
+        next_send_seq = 0;
+        next_recv_seq = 0;
+
+        do {
+            magic_number = ThreadLocalRandom.current().nextInt();
+        } while(magic_number <= 0);
+
         if(udp != null) {
-            current_state = ConnectState.Syncing;
-            state.sync.round_trips_remaining = NUM_SYNC_PACKETS;
-            sendSyncRequest();
+            current_state = ConnectState.Connecting;
+            sendConnectRequest();
         }
 
-        next_recv_seq = 0;
-        canStart = false;
+        last_received_input = new GameInput(GameInput.NULL_FRAME, 0);
+        last_sent_input = new GameInput(GameInput.NULL_FRAME, 0);
+        last_acked_input = new GameInput(GameInput.NULL_FRAME, 0);
+    }
 
-        remote_connect_status = new UdpMsg.ConnectStatus();
-        timeSync = new TimeSync();
+    public ConnectState getConnectState() {
+        return current_state;
     }
 
     public UdpMsg.ConnectStatus getRemoteStatus() {
         return remote_connect_status;
     }
 
+    void sendConnectRequest() {
+        if(current_state != ConnectState.Connecting) {
+            current_state = ConnectState.Connecting;
+        }
+        UdpMsg msg = new UdpMsg(UdpMsg.MsgType.ConnectReq);
+        msg.payload.connReq.random_request = 1;
+        sendMsg(msg);
+    }
+
     private void sendSyncRequest() {
         Random rand = new Random();
         state.sync.random = rand.nextInt() & 0xFFFF;
-        UdpMsg msg = new UdpMsg(UdpMsg.MsgType.ConnectReq);
-        msg.payload.connReq.random_request = state.sync.random;
+        UdpMsg msg = new UdpMsg(UdpMsg.MsgType.SyncRequest);
+        msg.payload.syncReq.random_request = state.sync.random;
         sendMsg(msg);
     }
 
     public void sendMsg(UdpMsg msg) {
-        // TODO: Update network stats here, such as packets sent.
+        last_send_time = System.nanoTime();        
         msg.hdr.sequenceNumber = next_send_seq++;
+        msg.hdr.magicNumber = magic_number;
         send_queue.push(new QueueEntry(System.nanoTime(), server_addr, msg));
         pumpSendQueue();
     }
@@ -84,20 +107,35 @@ public class UdpProto implements IPollSink {
     public boolean onLoopPoll(Object o) {
         if(udp == null) { return false; }
         long now = System.nanoTime();
+        long next_interval;
         pumpSendQueue();
-        // TODO: handle different states, such as, syncing, running, or disconnecting
         switch(current_state) {
+            case Connecting:
+                // if its been longer than 2000-ms and still not connected to server, resend sync request
+                if(last_send_time > 0 && now - last_send_time > CONNECT_RETRY_INTERVAL) {
+                    sendConnectRequest();
+                }
+                break;
+            case Connected:
+                // Now that we're connected. queue up a sync request?
+                event_queue.push(new UdpProtocolEvent(UdpProtocolEvent.Event.Connected));
+                break;
             case Syncing:
+                // similar to the connecting state, if it's been longer than x-ms and haven't received a sync reply,
+                // send another sync request.
+                next_interval = (state.sync.round_trips_remaining == NUM_SYNC_PACKETS) ? SYNC_FIRST_RETRY_INTERVAL : SYNC_RETRY_INTERVAL;
+                if (last_send_time > 0 && last_send_time + next_interval < now) {
+                    sendSyncRequest();
+                }
                 break;
             case Running:
-                if(state.running.last_quality_report_time <= 0 ||
-                    state.running.last_quality_report_time +
-                    QUALITY_REPORT_INTERVAL < now) {
-                    UdpMsg msg = new UdpMsg(UdpMsg.MsgType.QualityReport);
-                    msg.payload.qualrpt.ping = System.nanoTime();
-                    msg.payload.qualrpt.frame_advantage = local_frame_advantage;
-                    sendMsg(msg);
-                    state.running.last_quality_report_time = now;
+                if( state.running.last_input_packed_recv_time <= 0 ||
+                    state.running.last_input_packed_recv_time + RUNNING_RETRY_INTERVAL < now) {
+                    System.out.println("haven't exchanged packets in a while (last received: " +
+                            last_received_input.getFrame() + ", last sent: " +
+                            last_sent_input.getFrame() + "). Resending");
+                    sendPendingOutput();
+                    state.running.last_input_packed_recv_time = now;
                 }
                 break;
             case Disconnected:
@@ -119,48 +157,48 @@ public class UdpProto implements IPollSink {
         // TODO: send the rouge packet it is needed.
     }
 
-    public boolean handlesMsg(SocketAddress from) {
-        if(udp == null) { return false; }
-        return from.equals(server_addr);
-    }
-
     public void onMsg(UdpMsg msg) {
-        // TODO: handle the different kinds of messages that the server may send
-        // TODO: if the client receives a connect reply, I need to
-        //       start some kind of loop where we send "are we there yet"
-        //       messages to the server. When the server responds YES,
-        //       then we can start sending/receiving inputs
         boolean handled = false;
         switch(msg.hdr.type) {
             case 0:
-                onInvalid(msg);
+                onInvalid();
                 break;
             case 1:
-                handled = onConnectReq(msg);
+                handled = onConnectReq();
                 break;
             case 2:
                 handled = onConnectRep(msg);
                 break;
             case 3:
-                handled = onStartReq(msg);
+                handled = onSyncReq(msg);
                 break;
             case 4:
-                handled = onStartRep(msg);
+                handled = onSyncRep(msg);
                 break;
             case 5:
-                handled = onInput(msg);
+                handled = onStartReq();
                 break;
             case 6:
-                handled = onQualityReport(msg);
+                handled = onStartRep(msg);
                 break;
             case 7:
-                handled = onQualityReply(msg);
+                handled = onInput(msg);
+                break;
+            case 8:
+                handled = onQualityReport(msg);
+                break;
+            case 9:
+                handled = onQualityReply();
         }
 
         int seq = msg.hdr.sequenceNumber;
         if(	msg.hdr.type != UdpMsg.MsgType.ConnectReq.ordinal() &&
-                msg.hdr.type != UdpMsg.MsgType.ConnectReply.ordinal()) {
-            // TODO: reject messages from senders we don't expect
+            msg.hdr.type != UdpMsg.MsgType.ConnectReply.ordinal() &&
+            msg.hdr.type != UdpMsg.MsgType.SyncRequest.ordinal() &&
+            msg.hdr.type != UdpMsg.MsgType.SyncReply.ordinal()) {
+            if(msg.hdr.magicNumber != remote_magic_number) {
+                return;
+            }
         }
 
         int skipped = seq - next_recv_seq;
@@ -169,35 +207,73 @@ public class UdpProto implements IPollSink {
         }
 
         next_recv_seq = seq;
-        if(msg.hdr.type < 0 || msg.hdr.type > 3) {
-            onInvalid(msg);
-        }
-
         if(handled) {
-            // TODO: handle network resumed events
-            //		 if a disconnect notification has been sent and
-            //		 if the current state is running
+            // TODO: set last_recevied_time here
+            if( disconnect_notify_sent &&
+                current_state == ConnectState.Running) {
+                event_queue.push(new UdpProtocolEvent(
+                    UdpProtocolEvent.Event.NetworkResumed));
+                disconnect_notify_sent = false;
+            }
         }
     }
 
-    private void onInvalid(UdpMsg msg) {
+    private void onInvalid() {
     }
 
-    private boolean onConnectReq(UdpMsg msg) {
+    private boolean onConnectReq() {
         return true;
     }
 
     private boolean onConnectRep(UdpMsg msg) {
-        if(msg.payload.connRep != null) {
-            playerNumber = msg.payload.connRep.playerNumber;
+        if(current_state == ConnectState.Connecting) {
+            current_state = ConnectState.Connected;
         }
-        UdpMsg reply = new UdpMsg(UdpMsg.MsgType.StartReq);
-        reply.payload.startReq.canStart = 1;
+        playerNumber = msg.payload.connRep.playerNumber;
+        return true;
+    }
+
+    private boolean onSyncReq(UdpMsg msg) {
+        if(remote_magic_number > 0 && msg.hdr.magicNumber != remote_magic_number) {
+            return false;
+        }
+
+        UdpMsg reply = new UdpMsg(UdpMsg.MsgType.SyncReply);
+        reply.payload.syncRep.random_reply = msg.payload.syncReq.random_request;
         sendMsg(reply);
         return true;
     }
 
-    private boolean onStartReq(UdpMsg msg) {
+    private boolean onSyncRep(UdpMsg msg) {
+        if(current_state != ConnectState.Syncing) {
+            return msg.hdr.magicNumber == remote_magic_number;
+        }
+
+        if(msg.payload.syncRep.random_reply != state.sync.random) {
+            return false;
+        }
+
+        if(!connected) {
+            event_queue.push(new UdpProtocolEvent(UdpProtocolEvent.Event.Connected));
+            connected = true;
+        }
+
+        if(--state.sync.round_trips_remaining == 0) {
+            event_queue.push(new UdpProtocolEvent(UdpProtocolEvent.Event.Synchronized));
+            current_state = ConnectState.Running;
+            last_received_input = new GameInput(-1, -1);
+            remote_magic_number = msg.hdr.magicNumber;
+        } else {
+            UdpProtocolEvent event = new UdpProtocolEvent(UdpProtocolEvent.Event.Synchronizing);
+            event.syncing.total = NUM_SYNC_PACKETS;
+            event.syncing.count = NUM_SYNC_PACKETS - state.sync.round_trips_remaining;
+            event_queue.push(event);
+            sendSyncRequest();
+        }
+        return true;
+    }
+
+    private boolean onStartReq() {
 
         return true;
     }
@@ -215,17 +291,43 @@ public class UdpProto implements IPollSink {
     }
 
     private boolean onInput(UdpMsg msg) {
-        UdpProtocolEvent event =
-                new UdpProtocolEvent(UdpProtocolEvent.Event.Input);
-        remote_connect_status.disconnected = msg.payload.input.connect_status.disconnected;
-        remote_connect_status.last_frame = msg.payload.input.connect_status.last_frame;
+        boolean disconnect_requested = msg.payload.input.disconnect_requested;
+        if(disconnect_requested) {
+            if(current_state != ConnectState.Disconnected && !disconnect_event_sent) {
+                event_queue.push(new UdpProtocolEvent(UdpProtocolEvent.Event.Disconnected));
+                disconnect_event_sent = true;
+            }
+        } else {
+            UdpMsg.ConnectStatus remote_status = msg.payload.input.connect_status;
+            // TODO: update peer connect status "array" here:
+        }
 
-        event.input.input = new GameInput(
-                msg.payload.input.frame,
-                msg.payload.input.input);
+        if(msg.payload.input.num_inputs > 0) {
+            int num_inputs = msg.payload.input.num_inputs;
+            int current_frame = msg.payload.input.start_frame;
+            int[] inputs = new int[num_inputs];
+            System.arraycopy(msg.payload.input.inputs, 0, inputs, 0, inputs.length);
 
-        event_queue.push(event);
-        last_received_input = new  GameInput(event.input.input.getFrame(), event.input.input.getInput());
+            for(int input : inputs) {
+                boolean useInputs = current_frame == last_received_input.getFrame() + 1;
+                last_received_input.setInput(input);
+
+                if(useInputs) {
+                    last_received_input.setFrame(current_frame);
+                    UdpProtocolEvent event = new UdpProtocolEvent(UdpProtocolEvent.Event.Input);
+                    event.input.input = new GameInput(last_received_input.getFrame(), last_received_input.getInput());
+//                    event_queue.push(event);
+                    state.running.last_input_packed_recv_time = System.nanoTime();
+                }
+
+                current_frame++;
+            }
+        }
+
+        while(pending_output.size() > 0 && pending_output.front().getFrame() < msg.payload.input.ack_frame) {
+            last_acked_input = new GameInput(pending_output.front().getFrame(), pending_output.front().getInput());
+            pending_output.pop();
+        }
         return true;
     }
 
@@ -237,8 +339,7 @@ public class UdpProto implements IPollSink {
         return true;
     }
 
-    private boolean onQualityReply(UdpMsg msg) {
-        round_trip_time = System.nanoTime() - msg.payload.qualrep.pong;
+    private boolean onQualityReply() {
         return true;
     }
 
@@ -246,32 +347,42 @@ public class UdpProto implements IPollSink {
         return canStart;
     }
 
-    public void sendInput(GameInput gameInput, UdpMsg.ConnectStatus connectStatus) {
+    public void sendInput(GameInput gameInput) {
         if(udp != null) {
             if(current_state == ConnectState.Running) {
                 // TODO: increment time sync frame here
-                timeSync.advance_frame(gameInput, local_frame_advantage, remote_frame_advantage);
+//                timeSync.advance_frame(gameInput, local_frame_advantage, remote_frame_advantage);
                 pending_output.push(gameInput);
             }
-            sendPendingOutput(connectStatus);
+            sendPendingOutput();
         }
     }
 
-    private void sendPendingOutput(UdpMsg.ConnectStatus local_connect_status) {
+    private void sendPendingOutput() {
         UdpMsg msg = new UdpMsg(UdpMsg.MsgType.Input);
+        int j;
+        // TODO: something for inputs?
 
-        if(pending_output.front() != null) {
-            GameInput current = pending_output.front();
-            msg.payload.input.connect_status.disconnected = local_connect_status.disconnected;
-            msg.payload.input.connect_status.last_frame = local_connect_status.last_frame;
-            msg.payload.input.input = current.getInput();
-            msg.payload.input.frame = current.getFrame();
-            pending_output.pop();
+        if(pending_output.size() > 0) {
+            msg.payload.input.start_frame = pending_output.front().getFrame();
+            for(j = 0; j < pending_output.size; j++) {
+                GameInput current = pending_output.item(j);
+                msg.payload.input.inputs[j] = current.getInput();
+                last_sent_input = current;
+            }
         } else {
-            msg.payload.input.frame = 0;
+            msg.payload.input.start_frame = 0;
         }
-        // TODO: perhaps handle acked frames
-        // TODO: definitely update connect status
+
+        msg.payload.input.ack_frame = last_received_input.getFrame();
+        msg.payload.input.num_inputs = pending_output.size();
+        msg.payload.input.disconnect_requested = current_state == ConnectState.Disconnected;
+        // Copy local connect status into msg.payload.input.connect_status
+        if(local_connect_status == null) {
+            local_connect_status = new UdpMsg.ConnectStatus();
+            local_connect_status.disconnected = false;
+            local_connect_status.last_frame = 0;
+        }
 
         sendMsg(msg);
     }
@@ -287,17 +398,20 @@ public class UdpProto implements IPollSink {
         return playerNumber;
     }
 
-    public void setLocalFrameNumber(int local_frame) {
-        if(last_received_input != null) {
-            int remoteFrame =
-                    (int)(last_received_input.getFrame() +
-                            (round_trip_time * 60 / 1000));
-            local_frame_advantage = remoteFrame - local_frame;
+    public void synchronize() {
+        if(udp != null) {
+            current_state = ConnectState.Syncing;
+            state.sync.round_trips_remaining = NUM_SYNC_PACKETS;
+            sendSyncRequest();
         }
     }
 
-    public int recommendFrameDelay() {
-        return timeSync.recommend_frame_wait_duration(false);
+    public boolean isSynchronized() {
+        return current_state == ConnectState.Synchronized;
+    }
+
+    public boolean isInitialized() {
+        return udp == null;
     }
 }
 
@@ -315,24 +429,27 @@ class QueueEntry {
 
 class State {
     public Sync sync;
+    public Connect connecting;
     public Running running;
     public State() {
         sync = new Sync();
+        connecting = new Connect();
         running = new Running();
     }
 
-    public class Sync {
+    public static class Connect {
+        public long last_connect_reply_time;
+    }
+
+    public static class Sync {
         public int round_trips_remaining;
         public int random;
     }
 
-    public class Running {
+    public static class Running {
         public long last_quality_report_time;
         public long last_network_stats_interval;
         public long last_input_packed_recv_time;
     }
 }
 
-enum ConnectState {
-    Syncing, Synchronized, Running, Disconnected
-}

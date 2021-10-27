@@ -112,7 +112,7 @@ public class DummyClient extends Udp.Callbacks {
         GameInput gameInput = new GameInput(sync.frame_count, input);
         if(gameInput.getFrame() != GameInput.NULL_FRAME) {
             local_connect_status[0].last_frame = gameInput.getFrame();
-            server_endpoint.sendInput(gameInput); // <-- TODO: Remove when passing local connect status is necessary
+            server_endpoint.sendInput(gameInput, local_connect_status[0]); // <-- TODO: Remove when passing local connect status is necessary
         }
     }
 

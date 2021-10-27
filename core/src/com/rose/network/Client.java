@@ -151,7 +151,7 @@ public class Client extends Udp.Callbacks {
         if(gameInput.getFrame() != GameInput.NULL_FRAME) {
             local_connect_status.last_frame = gameInput.getFrame();
             local_connect_status.disconnected = false;
-            server_end_point.sendInput(gameInput);
+//            server_end_point.sendInput(gameInput, local_connect_status[0]);
         }
         return true;
     }

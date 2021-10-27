@@ -74,6 +74,8 @@ public class UdpProto implements IPollSink {
         last_received_input = new GameInput(GameInput.NULL_FRAME, 0);
         last_sent_input = new GameInput(GameInput.NULL_FRAME, 0);
         last_acked_input = new GameInput(GameInput.NULL_FRAME, 0);
+
+        local_connect_status = new UdpMsg.ConnectStatus();
     }
 
     public ConnectState getConnectState() {
@@ -347,6 +349,12 @@ public class UdpProto implements IPollSink {
             }
         }
 
+        if(pending_output.front() != null) {
+            System.out.println("should pop output buffer?");
+            System.out.println("pending output size: " + pending_output.size());
+            System.out.println("pending output front frame: " + pending_output.front().getFrame());
+            System.out.println("ack frame: " + msg.payload.input.ack_frame);
+        }
         while(pending_output.size() > 0 && pending_output.front().getFrame() < msg.payload.input.ack_frame) {
             last_acked_input = new GameInput(pending_output.front().getFrame(), pending_output.front().getInput());
             pending_output.pop();
@@ -371,15 +379,21 @@ public class UdpProto implements IPollSink {
         return canStart;
     }
 
-    public void sendInput(GameInput gameInput) {
+    public void sendInput(GameInput gameInput, UdpMsg.ConnectStatus local_connect_status) {
         if(udp != null) {
             if(current_state == ConnectState.Running) {
                 // TODO: increment time sync frame here
                 time_sync.advance_frame(gameInput, local_frame_advantage, remote_frame_advantage);
                 pending_output.push(gameInput);
             }
+            updateLocalConnectStatus(local_connect_status);
             sendPendingOutput();
         }
+    }
+
+    private void updateLocalConnectStatus(UdpMsg.ConnectStatus local_connect_status) {
+        this.local_connect_status.disconnected = local_connect_status.disconnected;
+        this.local_connect_status.last_frame = local_connect_status.last_frame;
     }
 
     private void sendPendingOutput() {
@@ -406,6 +420,9 @@ public class UdpProto implements IPollSink {
             local_connect_status = new UdpMsg.ConnectStatus();
             local_connect_status.disconnected = false;
             local_connect_status.last_frame = 0;
+        } else {
+            msg.payload.input.connect_status.disconnected = local_connect_status.disconnected;
+            msg.payload.input.connect_status.last_frame = local_connect_status.last_frame;
         }
 
         sendMsg(msg);

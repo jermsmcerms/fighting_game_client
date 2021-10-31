@@ -1,22 +1,19 @@
 package com.rose.management;
 
 import com.rose.actors.Fighter;
+import com.rose.ui.TouchControlsUI;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 
 public class GameState implements Serializable {
     public static final long serialVersionUID = 42L;
     private final Fighter[] fighters;
     private final boolean syncTest;
     private int frameCount;
-    private int playerNumber;
+    private final int playerNumber;
 
     public GameState(Fighter[] fighters, int playerNumber, boolean syncTest) {
         this.fighters = fighters;
@@ -34,14 +31,14 @@ public class GameState implements Serializable {
                 fighters[0].update(delta, inputs[0]);
                 fighters[1].update(delta, inputs[1]);
             } else if (playerNumber == 2) {
-
                 fighters[0].update(delta, inputs[1]);
                 fighters[1].update(delta, inputs[0]);
             }
 
             for (int i = 0; i < fighters.length; i++) {
+                fighters[i].keepInBounds();
                 if (fighters[i].isAttacking()) {
-                    fighters[i].checkForHit(fighters[(i + 1) % fighters.length]);
+                    fighters[i].checkForHit(fighters[(i + 1) % fighters.length], delta);
                 }
             }
         }

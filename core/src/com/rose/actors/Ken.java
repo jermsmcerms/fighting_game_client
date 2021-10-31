@@ -130,6 +130,34 @@ public class Ken extends Fighter {
         physics_boxes[0].setX(anchor_point.x - physics_boxes[0].getWidth() / 2.0f);
     }
 
+    public void keepInBounds() {
+        float offset = anchor_point.x - anim_anchor.x;
+        int offset_lookup;
+        if(facingRight) {
+            offset_lookup = 2;
+        } else {
+            offset_lookup = 3;
+        }
+        if(anim_anchor.x < 0) {
+            anim_anchor.x = 0;
+            physics_boxes[0].setX(anchor_point.x - physics_boxes[0].getWidth() / 2.0f);
+            for(int i = 1; i < physics_boxes.length; i++) {
+                if(physics_boxes[i].isActive()) {
+                    physics_boxes[i].setX(anchor_point.x - default_box_data[i][offset_lookup]);
+                }
+            }
+        } else if (anim_anchor.x + default_width > 400) {
+            anim_anchor.x = 400 - default_width;
+            physics_boxes[0].setX(anchor_point.x - physics_boxes[0].getWidth() / 2.0f);
+            for(int i = 1; i < physics_boxes.length; i++) {
+                if(physics_boxes[i].isActive()) {
+                    physics_boxes[i].setX(anchor_point.x - default_box_data[i][offset_lookup]);
+                }
+            }
+        }
+        anchor_point.x = anim_anchor.x + offset;
+    }
+
     public boolean isAttacking() {
         return attacking;
     }

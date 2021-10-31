@@ -3,6 +3,7 @@ package com.rose.ui;
 import static com.rose.constants.Constants.*;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -10,7 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.rose.input.TouchInput;
 
-public class TouchControlsUI {
+public class TouchControlsUI extends InputAdapter {
     private int row_height;
     private int col_width;
     private Skin skin;
@@ -26,10 +27,7 @@ public class TouchControlsUI {
     private int input_combo;
 
     public TouchControlsUI() {
-    }
-
-    public void draw() {
-
+        Gdx.input.setInputProcessor(this);
     }
 
     public int getInput() {

@@ -27,9 +27,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MainScreen extends ScreenBase implements GgpoCallbacks {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final String gameName = "Rose";
-    private boolean trainingMode;
+    private final boolean trainingMode;
     private MatchUI ui;
     private SpriteBatch batch;
     private OrthographicCamera camera;
@@ -39,7 +39,7 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     private Ryu ryu;
     private Ken ken;
 
-    private int playerNumber;
+    private final int playerNumber;
     private long next, now;
     private TouchControlsUI touchInputUI;
     private GameState gs;
@@ -136,7 +136,7 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
 //                }
             }
         } else {
-                inputs = new int[]{input, 0};
+            inputs = new int[]{input, 0};
             advanceFrame(delta, inputs);
         }
         drawCurrentFrame(delta);

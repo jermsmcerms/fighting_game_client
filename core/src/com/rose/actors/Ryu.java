@@ -12,6 +12,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.rose.animation.AnimationState;
 import com.rose.animation.SpriteAnimation;
+import com.rose.physics.Boxes;
 
 
 public class Ryu extends Fighter {
@@ -164,6 +165,35 @@ public class Ryu extends Fighter {
                 }
             }
         }
+    }
+
+    @Override
+    public void keepInBounds() {
+        float offset = anchor_point.x - anim_anchor.x;
+        int offset_lookup;
+        if(facingRight) {
+            offset_lookup = 2;
+        } else {
+            offset_lookup = 3;
+        }
+        if(anim_anchor.x < 0) {
+            anim_anchor.x = 0;
+            physics_boxes[0].setX(anchor_point.x - physics_boxes[0].getWidth() / 2.0f + 3);
+            for(int i = 1; i < physics_boxes.length; i++) {
+                if(physics_boxes[i].isActive()) {
+                    physics_boxes[i].setX(anchor_point.x - default_box_data[i][offset_lookup] + 3);
+                }
+            }
+        } else if (anim_anchor.x + default_width > 400) {
+            anim_anchor.x = 400 - default_width;
+            physics_boxes[0].setX(anchor_point.x - physics_boxes[0].getWidth() / 2.0f - 3);
+            for(int i = 1; i < physics_boxes.length; i++) {
+                if(physics_boxes[i].isActive()) {
+                    physics_boxes[i].setX(anchor_point.x - default_box_data[i][offset_lookup] - 3);
+                }
+            }
+        }
+        anchor_point.x = anim_anchor.x + offset;
     }
 
     @Override

@@ -39,6 +39,10 @@ public class Fighter implements Serializable {
 
     transient private ShapeRenderer sr;
     private int health;
+    private boolean damage_applied;
+    private int hitstun;
+    private int combo_counter;
+    private boolean attacked;
 
     public Fighter(Vector2 anim_anchor, boolean facingRight) {
         this.anim_anchor = anim_anchor;
@@ -146,14 +150,45 @@ public class Fighter implements Serializable {
         }
     }
 
-    public void checkForHit(Fighter ken) {
+    public void checkForHit(Fighter otherFighter, float delta) {
         if(physics_boxes[4].isActive()) {
-            for(Boxes box : ken.getBoxes()) {
+            for(Boxes box : otherFighter.getBoxes()) {
                 if(box.getType() == Boxes.Type.Hurt) {
-                    if(physics_boxes[4].overlaps(box)) {
-                        ken.takeDamage();
+                    if(physics_boxes[4].overlaps(box) && !damage_applied) {
+                        otherFighter.applyHit(5, 17);
+                        damage_applied = true;
+                        applyPushBack(anim_state, delta);
                         return;
                     }
+                }
+            }
+        }
+    }
+
+    private void applyHit(int damage, int hitstun) {
+        attacked = true;
+        health -= damage; // TODO: change this to be damage * some decreasing value for every combo hit
+        if(this.hitstun > 0) {
+            combo_counter++;
+        }
+
+        this.hitstun = hitstun;
+    }
+
+    private void applyPushBack(AnimationState anim_state, float delta) {
+        float direction;
+        if(anim_state == AnimationState.C_LIGHT) {
+            if(facingRight) {
+                direction = -700 * delta;
+            } else {
+                direction = 700 * delta;
+            }
+
+            anchor_point.x += direction;
+            anim_anchor.x += direction;
+            for(Boxes box : physics_boxes) {
+                if(box.isActive()) {
+                    box.update(direction);
                 }
             }
         }
@@ -167,51 +202,65 @@ public class Fighter implements Serializable {
         anim_state_time += dt;
         anim_anchor.x += direction * dt;
 
-        direction = 0.0f; // Allows continuous movement only if movement buttons are held.
-        if(!attacking) {
-            if(input >= A_BTN) {
-                anim_state_time = 0.0f;
-            }
-            switch (input) {
-                case NEUTRAL: {
-                    anim_state = AnimationState.IDLE;
-                    break;
+        if(!attacked) {
+            direction = 0.0f; // Allows continuous movement only if movement buttons are held.
+            if (!attacking) {
+                if (damage_applied) {
+                    damage_applied = false;
                 }
-                case LEFT: {
-                    direction = -200f;
-                    if (facingRight) {
-                        anim_state = AnimationState.BWD_DASH;
-                    } else {
-                        anim_state = AnimationState.FWD_DASH;
-                    }
-                    break;
-                }
-                case RIGHT: {
-                    direction = 200f;
-                    if (facingRight) {
-                        anim_state = AnimationState.FWD_DASH;
-                    } else {
-                        anim_state = AnimationState.BWD_DASH;
-                    }
-                    break;
-                }
-                case A_BTN: {
-                    attacking = true;
-                    anim_state = AnimationState.C_LIGHT;
-                    break;
-                }
-                case D_BTN: {
-                    attacking = true;
-                    anim_state = AnimationState.SPECIAL;
-                    break;
-                }
-                default:
-                    break;
-            }
 
-            for (Boxes physics_box : physics_boxes) {
-                if (physics_box.isActive()) {
-                    physics_box.update(dt, direction);
+                if (input >= A_BTN) {
+                    anim_state_time = 0.0f;
+                }
+                switch (input) {
+                    case NEUTRAL: {
+                        anim_state = AnimationState.IDLE;
+                        break;
+                    }
+                    case LEFT: {
+                        direction = -200f;
+                        if (facingRight) {
+                            anim_state = AnimationState.BWD_DASH;
+                        } else {
+                            anim_state = AnimationState.FWD_DASH;
+                        }
+                        break;
+                    }
+                    case RIGHT: {
+                        direction = 200f;
+                        if (facingRight) {
+                            anim_state = AnimationState.FWD_DASH;
+                        } else {
+                            anim_state = AnimationState.BWD_DASH;
+                        }
+                        break;
+                    }
+                    case A_BTN: {
+                        attacking = true;
+                        anim_state = AnimationState.C_LIGHT;
+                        break;
+                    }
+                    case D_BTN: {
+                        attacking = true;
+                        anim_state = AnimationState.SPECIAL;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                for (Boxes physics_box : physics_boxes) {
+                    if (physics_box.isActive()) {
+                        physics_box.update(dt, direction);
+                    }
+                }
+            }
+        } else {
+            hitstun--;
+            if(hitstun < 0) {
+                hitstun = 0;
+                attacked = false;
+                if(combo_counter != 0) {
+                    combo_counter = 0;
                 }
             }
         }
@@ -219,10 +268,6 @@ public class Fighter implements Serializable {
 
     public float getHealth() {
         return health;
-    }
-
-    protected void takeDamage() {
-        health -= 25;
     }
 
     protected void updateHurtBoxes(Vector2 anchor_point, float[][] box_data, boolean activateHitBox) {
@@ -278,10 +323,6 @@ public class Fighter implements Serializable {
                 other_center.getX() + other_center.getWidth() / 2f;
     }
 
-    public void preventOverlap(Fighter fighter) {}
-
-    public void keepInBounds() {}
-
     public Vector2 getAnchorPoint() {
         return anchor_point;
     }
@@ -292,5 +333,12 @@ public class Fighter implements Serializable {
 
     public float getAnimStateTime() {
         return anim_state_time;
+    }
+
+    public void keepInBounds() {
+    }
+
+    public int getComboCounter() {
+        return combo_counter;
     }
 }

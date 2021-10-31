@@ -121,6 +121,11 @@ public class Boxes implements Serializable {
         box.x += direction * dt;
     }
 
+    /* For updating after calculating direction * dt */
+    public void update(float pos) {
+        box.x += pos;
+    }
+
     public void orient(float offset) {
         box.x = offset;
     }

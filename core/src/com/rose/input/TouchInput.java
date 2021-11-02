@@ -1,5 +1,9 @@
 package com.rose.input;
 
-public class TouchInput {
+import com.badlogic.gdx.scenes.scene2d.InputListener;
+
+public class TouchInput extends InputListener {
     public TouchInput() {}
+    
+    
 }

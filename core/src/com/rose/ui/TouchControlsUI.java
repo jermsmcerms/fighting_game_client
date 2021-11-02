@@ -25,9 +25,14 @@ public class TouchControlsUI extends InputAdapter {
     private Button t_button;
     private Button s_button;
     private int input_combo;
+    private boolean block_action;
 
     public TouchControlsUI() {
         Gdx.input.setInputProcessor(this);
+    }
+
+    public boolean getBlockAction() {
+        return block_action;
     }
 
     public int getInput() {
@@ -87,6 +92,7 @@ public class TouchControlsUI extends InputAdapter {
             public boolean touchDown(InputEvent event, float x, float y,
                                      int pointer, int button) {
                 input_combo += A_BTN;
+                block_action = true;
                 return true;
             }
 
@@ -94,6 +100,7 @@ public class TouchControlsUI extends InputAdapter {
             public void touchUp(InputEvent event, float x, float y,
                                 int pointer, int button) {
                 input_combo -= A_BTN;
+                block_action = false;
             }
         });
         stage.addActor(a_button);

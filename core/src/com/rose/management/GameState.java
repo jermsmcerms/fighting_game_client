@@ -14,11 +14,13 @@ public class GameState implements Serializable {
     private final boolean syncTest;
     private int frameCount;
     private final int playerNumber;
+    private final TouchControlsUI touchControlsUI;
 
     public GameState(Fighter[] fighters, int playerNumber, boolean syncTest) {
         this.fighters = fighters;
         this.playerNumber = playerNumber;
         this.syncTest = syncTest;
+        touchControlsUI =  new TouchControlsUI();
     }
 
     public void update(float delta, int[] inputs) {
@@ -42,6 +44,7 @@ public class GameState implements Serializable {
                 }
             }
         }
+
     }
 
     public byte[] saveGameState() {

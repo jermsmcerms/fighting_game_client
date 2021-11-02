@@ -2,6 +2,7 @@ package com.rose.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 
@@ -30,7 +31,7 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     private static final boolean DEBUG = false;
     private static final String gameName = "Rose";
     private final boolean trainingMode;
-    private MatchUI ui;
+//    private MatchUI ui;
     private SpriteBatch batch;
     private OrthographicCamera camera;
 
@@ -47,6 +48,10 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
 
     private int randomInput;
     private String checksum;
+
+    private Texture background;
+    private Texture ui;
+    private Texture buttons;
 
     public MainScreen(Rose parent) {
         super(parent);
@@ -69,9 +74,9 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     @Override
     public void show() {
         super.show();
-        if(ui != null) {
-            ui.showUI(stage);
-        }
+//        if(ui != null) {
+//            ui.showUI(stage);
+//        }
 
         if(touchInputUI != null) {
             touchInputUI.showUI(stage);
@@ -96,11 +101,14 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     }
 
     private void initMatch() {
-        ui = new MatchUI();
+//        ui = new MatchUI();
+        background = new Texture(Gdx.files.internal("sample_background.png"));
+        ui = new Texture(Gdx.files.internal("match_ui_overlay.png"));
+        buttons = new Texture(Gdx.files.internal("button_layout.png"));
         touchInputUI = new TouchControlsUI();
         batch = new SpriteBatch();
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, 400, 240);
+        camera.setToOrtho(false, 420, 220);
         buildFighters();
 
         gs = new GameState(new Fighter[]{ryu, ken}, playerNumber, false);
@@ -177,10 +185,13 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     }
 
     private void drawCurrentFrame(float delta) {
-        camera.update();
 
-        batch.setProjectionMatrix(camera.combined);
+        camera.update();
         batch.begin();
+        batch.setProjectionMatrix(camera.combined);
+        batch.draw(background, -190, 0, background.getWidth(), background.getHeight());
+        batch.draw(ui, 0, 0, ui.getWidth(), ui.getHeight());
+        batch.draw(buttons, 0, 0, buttons.getWidth(), buttons.getHeight());
         ryu.draw(delta, batch, camera);
         ken.draw(delta, batch, camera);
         batch.end();
@@ -190,13 +201,13 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
         ken.drawDebug(camera);
 
         // Draw UI
-        ui.updateUI(delta, ryu, ken);
-        if(ui.isMatchOver()) {
-            this.parent.changeScreen(Rose.ScreenType.MENU);
-        }
-        if(ui.getTimer() <= 0) {
-            this.parent.changeScreen(Rose.ScreenType.MENU);
-        }
+//        ui.updateUI(delta, ryu, ken);
+//        if(ui.isMatchOver()) {
+//            this.parent.changeScreen(Rose.ScreenType.MENU);
+//        }
+//        if(ui.getTimer() <= 0) {
+//            this.parent.changeScreen(Rose.ScreenType.MENU);
+//        }
     }
 
     @Override

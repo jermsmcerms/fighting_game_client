@@ -22,8 +22,8 @@ public class ScreenBase implements Screen {
     public ScreenBase(Rose parent) {
         this.parent = parent;
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, 400, 240);
-        Viewport viewport = new FitViewport(400, 240, camera);
+        camera.setToOrtho(false, 420, 220);
+        Viewport viewport = new FitViewport(420, 220, camera);
         stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
     }

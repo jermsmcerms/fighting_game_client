@@ -1,14 +1,10 @@
 package com.rose.actors;
 
 import static com.rose.animation.SpriteAnimation.FRAME_LENGTH;
-import static com.rose.physics.Boxes.Type.Hurt;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -16,9 +12,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.rose.animation.AnimationState;
 import com.rose.animation.SpriteAnimation;
-import com.rose.physics.Boxes;
-
-import java.util.Optional;
 
 public class Ken extends Fighter {
     static final long serialVersionUID = 44L;
@@ -205,13 +198,13 @@ public class Ken extends Fighter {
     }
 
     @Override
-    public void drawDebug(OrthographicCamera camera) {
-        super.drawDebug(camera);
-        sr.begin(ShapeRenderer.ShapeType.Line);
-        sr.setProjectionMatrix(camera.combined);
-        sr.setColor(Color.YELLOW);
-        sr.rect(anchor_point.x, anchor_point.y, 1.0f, 1.0f);
-        sr.end();
+    public void drawDebug(ShapeRenderer sr, OrthographicCamera camera) {
+        super.drawDebug(sr, camera);
+        this.sr.begin(ShapeRenderer.ShapeType.Line);
+        this.sr.setProjectionMatrix(camera.combined);
+        this.sr.setColor(Color.YELLOW);
+        this.sr.rect(anchor_point.x, anchor_point.y, 1.0f, 1.0f);
+        this.sr.end();
     }
 
     private void defineAnimationLengths() {

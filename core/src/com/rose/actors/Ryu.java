@@ -12,7 +12,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.rose.animation.AnimationState;
 import com.rose.animation.SpriteAnimation;
-import com.rose.physics.Boxes;
 
 
 public class Ryu extends Fighter {
@@ -197,13 +196,13 @@ public class Ryu extends Fighter {
     }
 
     @Override
-    public void drawDebug(OrthographicCamera camera) {
-        super.drawDebug(camera);
-        sr.begin(ShapeRenderer.ShapeType.Line);
-        sr.setProjectionMatrix(camera.combined);
-        sr.setColor(Color.YELLOW);
-        sr.rect(anchor_point.x, anchor_point.y, 1.0f, 1.0f);
-        sr.end();
+    public void drawDebug(ShapeRenderer sr, OrthographicCamera camera) {
+        super.drawDebug(sr, camera);
+        this.sr.begin(ShapeRenderer.ShapeType.Line);
+        this.sr.setProjectionMatrix(camera.combined);
+        this.sr.setColor(Color.YELLOW);
+        this.sr.rect(anchor_point.x, anchor_point.y, 1.0f, 1.0f);
+        this.sr.end();
     }
 
     private void defineAnimationLengths() {

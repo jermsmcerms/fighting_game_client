@@ -37,7 +37,6 @@ public class Fighter implements Serializable {
     protected boolean attacking;
     protected Boxes[] physics_boxes;
 
-    transient private ShapeRenderer sr;
     private int health;
     private boolean damage_applied;
     private int hitstun;
@@ -63,12 +62,9 @@ public class Fighter implements Serializable {
 
         showBoxes = true;
 
-        sr = new ShapeRenderer();
-
         health = 100;
 
         animation_map = new HashMap<>(AnimationState.length());
-        sr = new ShapeRenderer();
     }
 
     protected void initializePhysicsBoxes(float[][] box_sizes, Vector2 anchor_point) {
@@ -120,33 +116,23 @@ public class Fighter implements Serializable {
         });
     }
 
-    public void drawDebug(OrthographicCamera camera) {
+    public void drawDebug(ShapeRenderer sr, OrthographicCamera camera) {
         if(physics_boxes != null) {
-            Gdx.gl.glEnable(GL20.GL_BLEND);
-            sr.begin(ShapeRenderer.ShapeType.Filled);
-            sr.setProjectionMatrix(camera.combined);
             sr.setColor(0,0,1,0.5F);
             sr.rect(physics_boxes[0].getX(), physics_boxes[0].getY(), physics_boxes[0].getWidth(), physics_boxes[0].getHeight());
-            sr.end();
-            sr.begin(ShapeRenderer.ShapeType.Filled);
+
             sr.setColor(0,1,0,0.4F);
             for (int i = 1; i < physics_boxes.length - 1; i++) {
                 if (physics_boxes[i] != null) {
                     sr.rect(physics_boxes[i].getX(), physics_boxes[i].getY(), physics_boxes[i].getWidth(), physics_boxes[i].getHeight());
                 }
             }
-            sr.end();
-            sr.begin(ShapeRenderer.ShapeType.Filled);
-            sr.setProjectionMatrix(camera.combined);
+
             sr.setColor(Color.RED);
             sr.rect(physics_boxes[physics_boxes.length-1].getX(), physics_boxes[physics_boxes.length-1].getY(), physics_boxes[physics_boxes.length-1].getWidth(), physics_boxes[physics_boxes.length-1].getHeight());
-            sr.end();
-            sr.begin(ShapeRenderer.ShapeType.Filled);
-            sr.setProjectionMatrix(camera.combined);
+
             sr.setColor(Color.PINK);
             sr.rect(anim_anchor.x, anim_anchor.y, 1.0f, 1.0f);
-            sr.end();
-            Gdx.gl.glDisable(GL20.GL_BLEND);
         }
     }
 

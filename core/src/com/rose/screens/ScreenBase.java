@@ -5,6 +5,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -24,7 +25,7 @@ public class ScreenBase implements Screen {
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 420, 220);
         Viewport viewport = new FitViewport(420, 220, camera);
-        stage = new Stage(viewport);
+        stage = new Stage(viewport, new SpriteBatch());
         Gdx.input.setInputProcessor(stage);
     }
 
@@ -36,10 +37,10 @@ public class ScreenBase implements Screen {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.2f, 0.2f, 0.2f, 1);
-        camera.update();
-        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1/60f));
-        stage.draw();
+//        ScreenUtils.clear(0.2f, 0.2f, 0.2f, 1);
+//        camera.update();
+//        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1/60f));
+//        stage.draw();
     }
 
     @Override

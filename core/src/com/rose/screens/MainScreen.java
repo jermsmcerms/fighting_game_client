@@ -17,6 +17,7 @@ import com.rose.management.NonGameState;
 import com.rose.management.SaveGameState;
 import com.rose.management.Utilities;
 import com.rose.network.Client;
+import com.rose.renderering.Renderer;
 import com.rose.ui.MatchUI;
 import com.rose.ui.TouchControlsUI;
 
@@ -32,7 +33,6 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     private static final String gameName = "Rose";
     private final boolean trainingMode;
 //    private MatchUI ui;
-    private SpriteBatch batch;
     private OrthographicCamera camera;
 
     private Client client;
@@ -43,15 +43,12 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     private final int playerNumber;
     private long next, now;
     private TouchControlsUI touchInputUI;
+    private Renderer renderer;
     private GameState gs;
     private NonGameState ngs;
 
     private int randomInput;
     private String checksum;
-
-    private Texture background;
-    private Texture ui;
-    private Texture buttons;
 
     public MainScreen(Rose parent) {
         super(parent);
@@ -78,9 +75,9 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
 //            ui.showUI(stage);
 //        }
 
-        if(touchInputUI != null) {
-            touchInputUI.showUI(stage);
-        }
+//        if(touchInputUI != null) {
+//            touchInputUI.showUI(stage);
+//        }
     }
 
     @Override
@@ -102,17 +99,14 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
 
     private void initMatch() {
 //        ui = new MatchUI();
-        background = new Texture(Gdx.files.internal("sample_background.png"));
-        ui = new Texture(Gdx.files.internal("match_ui_overlay.png"));
-        buttons = new Texture(Gdx.files.internal("button_layout.png"));
-        touchInputUI = new TouchControlsUI();
-        batch = new SpriteBatch();
+        touchInputUI = new TouchControlsUI(stage);
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 420, 220);
         buildFighters();
 
         gs = new GameState(new Fighter[]{ryu, ken}, playerNumber, false);
         ngs = new NonGameState();
+        renderer = new Renderer(stage);
         randomInput = getRandomInput();
     }
 
@@ -147,7 +141,8 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
             inputs = new int[]{input, 0};
             advanceFrame(delta, inputs);
         }
-        drawCurrentFrame(delta);
+
+        renderer.draw(gs, ngs);
     }
 
     private int getRandomInput() {
@@ -182,32 +177,6 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
                 e.printStackTrace();
             }
         }
-    }
-
-    private void drawCurrentFrame(float delta) {
-
-        camera.update();
-        batch.begin();
-        batch.setProjectionMatrix(camera.combined);
-        batch.draw(background, -190, 0, background.getWidth(), background.getHeight());
-        batch.draw(ui, 0, 0, ui.getWidth(), ui.getHeight());
-        batch.draw(buttons, 0, 0, buttons.getWidth(), buttons.getHeight());
-        ryu.draw(delta, batch, camera);
-        ken.draw(delta, batch, camera);
-        batch.end();
-        // TODO: Eventually I'll want to replace this debug call with code that draws
-        //       a sprite representation of the player's boxes.
-        ryu.drawDebug(camera);
-        ken.drawDebug(camera);
-
-        // Draw UI
-//        ui.updateUI(delta, ryu, ken);
-//        if(ui.isMatchOver()) {
-//            this.parent.changeScreen(Rose.ScreenType.MENU);
-//        }
-//        if(ui.getTimer() <= 0) {
-//            this.parent.changeScreen(Rose.ScreenType.MENU);
-//        }
     }
 
     @Override

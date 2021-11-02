@@ -1,5 +1,6 @@
 package com.rose.management;
 
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.rose.actors.Fighter;
 import com.rose.ui.TouchControlsUI;
 
@@ -14,13 +15,11 @@ public class GameState implements Serializable {
     private final boolean syncTest;
     private int frameCount;
     private final int playerNumber;
-    private final TouchControlsUI touchControlsUI;
 
     public GameState(Fighter[] fighters, int playerNumber, boolean syncTest) {
         this.fighters = fighters;
         this.playerNumber = playerNumber;
         this.syncTest = syncTest;
-        touchControlsUI =  new TouchControlsUI();
     }
 
     public void update(float delta, int[] inputs) {
@@ -66,5 +65,9 @@ public class GameState implements Serializable {
 
     public int getFrameNumber() {
         return frameCount;
+    }
+
+    public Fighter[] getFighters() {
+        return fighters;
     }
 }

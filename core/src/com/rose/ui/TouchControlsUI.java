@@ -4,49 +4,78 @@ import static com.rose.constants.Constants.*;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.rose.actors.ButtonActor;
 import com.rose.input.TouchInput;
 
 public class TouchControlsUI extends InputAdapter {
-    private int row_height;
-    private int col_width;
-    private Skin skin;
-    private TouchInput touchInput;
-    private Button l_button;
-    private Button r_button;
-    private Button a_button;
-    private Button b_button;
-    private Button c_button;
-    private Button d_button;
-    private Button t_button;
-    private Button s_button;
+    private final TextureAtlas textureAtlas;
+    private ButtonActor pause_button;
+    private ButtonActor l_button;
+    private ButtonActor r_button;
+    private ButtonActor a_button;
+    private ButtonActor b_button;
+    private ButtonActor c_button;
+    private ButtonActor d_button;
+    private ButtonActor t_button;
+    private ButtonActor s_button;
     private int input_combo;
-    private boolean block_action;
+    private boolean show_buttons = true;
 
-    public TouchControlsUI() {
+    public TouchControlsUI(Stage stage) {
         Gdx.input.setInputProcessor(this);
-    }
+        textureAtlas = new TextureAtlas(Gdx.files.internal("ui_elements.atlas"));
 
-    public boolean getBlockAction() {
-        return block_action;
-    }
-
-    public int getInput() {
-        return input_combo;
-    }
-
-    public void showUI(Stage stage) {
         Gdx.input.setInputProcessor(stage);
-        skin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
+        Button.ButtonStyle style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(new Texture(Gdx.files.internal("pause_button.png")));
+        pause_button = new ButtonActor(style);
+        pause_button.setSize(50, 50);
+        pause_button.setPosition(stage.getWidth() / 2.0f - pause_button.getWidth(), stage.getHeight() - pause_button.getHeight());
+        pause_button.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                l_button.drawable = !l_button.drawable;
+                r_button.drawable = !r_button.drawable;
+                a_button.drawable = !a_button.drawable;
+                b_button.drawable = !b_button.drawable;
+                c_button.drawable = !c_button.drawable;
+                d_button.drawable = !d_button.drawable;
+                t_button.drawable = !t_button.drawable;
+                return super.touchDown(event, x, y, pointer, button);
+            }
 
-        l_button = new Button(skin, "small");
-        l_button.setSize(30, 30);
-        l_button.setPosition(25,25);
-        l_button.setColor(0.0f, 0.0f, 0.0f, 0.4f);
+
+        });
+        stage.addActor(pause_button);
+
+        Button pause_button = new ButtonActor(new Button.ButtonStyle());
+        pause_button.setSize(30, 30);
+        pause_button.setPosition(stage.getWidth() / 2.0f, stage.getHeight() - 30);
+        pause_button.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y,
+                                     int pointer, int button) {
+                show_buttons = !show_buttons;
+                return true;
+            }
+        });
+
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(textureAtlas.findRegion("l_btn_up"));
+        style.down = new TextureRegionDrawable(textureAtlas.findRegion("l_btn_dwn"));
+        l_button = new ButtonActor(style);
+        l_button.setSize(41,43);
+        l_button.setPosition(21, 9);
         l_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y,
@@ -63,10 +92,12 @@ public class TouchControlsUI extends InputAdapter {
         });
         stage.addActor(l_button);
 
-        r_button = new Button(skin, "small");
-        r_button.setSize(30, 30);
-        r_button.setPosition(90,25);
-        r_button.setColor(0.0f, 0.0f, 0.0f, 0.4f);
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(textureAtlas.findRegion("r_btn_up"));
+        style.down = new TextureRegionDrawable(textureAtlas.findRegion("r_btn_dwn"));
+        r_button = new ButtonActor(style);
+        r_button.setSize(41,43);
+        r_button.setPosition(102, 9);
         r_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y,
@@ -83,16 +114,17 @@ public class TouchControlsUI extends InputAdapter {
         });
         stage.addActor(r_button);
 
-        a_button = new Button(skin, "small");
-        a_button.setSize(30, 30);
-        a_button.setPosition(275, 60);
-        a_button.setColor(1.0f, 0.0f, 0.0f, 0.4f);
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(textureAtlas.findRegion("a_btn_up"));
+        style.down = new TextureRegionDrawable(textureAtlas.findRegion("a_btn_dwn"));
+        a_button = new ButtonActor(style);
+        a_button.setSize(41,43);
+        a_button.setPosition(282, 9);
         a_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y,
                                      int pointer, int button) {
                 input_combo += A_BTN;
-                block_action = true;
                 return true;
             }
 
@@ -100,15 +132,16 @@ public class TouchControlsUI extends InputAdapter {
             public void touchUp(InputEvent event, float x, float y,
                                 int pointer, int button) {
                 input_combo -= A_BTN;
-                block_action = false;
             }
         });
         stage.addActor(a_button);
 
-        b_button = new Button(skin, "small");
-        b_button.setSize(30, 30);
-        b_button.setPosition(320,105);
-        b_button.setColor(0.0f, 1.0f, 0.0f, 0.4f);
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(textureAtlas.findRegion("b_btn_up"));
+        style.down = new TextureRegionDrawable(textureAtlas.findRegion("b_btn_dwn"));
+        b_button = new ButtonActor(style);
+        b_button.setSize(41,43);
+        b_button.setPosition(282, 81);
         b_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y,
@@ -125,10 +158,12 @@ public class TouchControlsUI extends InputAdapter {
         });
         stage.addActor(b_button);
 
-        c_button = new Button(skin, "small");
-        c_button.setSize(30, 30);
-        c_button.setPosition(365,60);
-        c_button.setColor(0.0f, 0.0f, 1.0f, 0.4f);
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(textureAtlas.findRegion("c_btn_up"));
+        style.down = new TextureRegionDrawable(textureAtlas.findRegion("c_btn_dwn"));
+        c_button = new ButtonActor(style);
+        c_button.setSize(41,43);
+        c_button.setPosition(372, 81);
         c_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y,
@@ -145,10 +180,12 @@ public class TouchControlsUI extends InputAdapter {
         });
         stage.addActor(c_button);
 
-        d_button = new Button(skin, "small");
-        d_button.setSize(30, 30);
-        d_button.setPosition(320,15);
-        d_button.setColor(1.0f, 1.0f, 0.0f, 0.4f);
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(textureAtlas.findRegion("d_btn_up"));
+        style.down = new TextureRegionDrawable(textureAtlas.findRegion("d_btn_dwn"));
+        d_button = new ButtonActor(style);
+        d_button.setSize(41,43);
+        d_button.setPosition(372, 9);
         d_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y,
@@ -165,10 +202,12 @@ public class TouchControlsUI extends InputAdapter {
         });
         stage.addActor(d_button);
 
-        t_button = new Button(skin, "small");
-        t_button.setSize(30, 30);
-        t_button.setPosition(320,60);
-        t_button.setColor(1.0f, 1.0f, 1.0f, 0.4f);
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(textureAtlas.findRegion("t_btn_up"));
+        style.down = new TextureRegionDrawable(textureAtlas.findRegion("t_btn_dwn"));
+        t_button = new ButtonActor(style);
+        t_button.setSize(41,43);
+        t_button.setPosition(327, 48);
         t_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y,
@@ -203,5 +242,13 @@ public class TouchControlsUI extends InputAdapter {
 //        }
 //        });
 //        stage.addActor(s_button);
+    }
+
+    public int getInput() {
+        return input_combo;
+    }
+
+    public void showUI(Stage stage) {
+
     }
 }

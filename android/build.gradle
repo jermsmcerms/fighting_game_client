@@ -17,7 +17,7 @@ android {
         exclude 'META-INF/robovm/ios/robovm.xml'
     }
     defaultConfig {
-        applicationId "com.rose"
+        applicationId "com.fighting_game"
         minSdkVersion 26
         targetSdkVersion 30
         versionCode 1
@@ -86,7 +86,7 @@ task run(type: Exec) {
     }
 
     def adb = path + "/platform-tools/adb"
-    commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.rose/com.rose.AndroidLauncher'
+    commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.fighting_game/com.fighting_game.AndroidLauncher'
 }
 
 eclipse.project.name = appName + "-android"

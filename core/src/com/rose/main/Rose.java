@@ -6,17 +6,15 @@ import com.rose.network.Client;
 import com.rose.management.AppPreferences;
 import com.rose.screens.EndScreen;
 import com.rose.screens.LoadingScreen;
-import com.rose.screens.MainScreen;
+import com.rose.screens.ApplicationScreen;
 import com.rose.screens.MenuScreen;
 import com.rose.screens.PreferencesScreen;
 
 import java.io.IOException;
 
-import com.rose.data.BoxSizes;
-
 public class Rose extends Game {
 	private EndScreen endScreen;
-	private MainScreen applicationScreen;
+	private ApplicationScreen applicationScreen;
 	private PreferencesScreen preferencesScreen;
 	private MenuScreen menuScreen;
 	private AppPreferences appPreferences;
@@ -25,7 +23,7 @@ public class Rose extends Game {
 	private TestGame testGame;
 
 	public enum ScreenType {
-		MENU, PREFERENCES, APPLICATION, ENDGAME, SYNCTEST;
+		MENU, PREFERENCES, APPLICATION, ENDGAME, TEST
     }
 
 	public void setTrainingMode(boolean enabled) {
@@ -58,16 +56,16 @@ public class Rose extends Game {
 				}
 				if (applicationScreen == null) {
 					if (trainingMode) {
-						applicationScreen = new MainScreen(this);
+						applicationScreen = new ApplicationScreen(this);
 					} else {
-						Client client = null;
+						Client client;
 						try {
 							client = new Client();
 							while (!client.getAllConnected()) {
 								client.doPoll(0);
 							}
 							client.setPlayerNumber();
-							applicationScreen = new MainScreen(this, client);
+							applicationScreen = new ApplicationScreen(this, client);
 							client.setCallbacks(applicationScreen);
 						} catch (IOException e) {
 							e.printStackTrace();
@@ -77,7 +75,7 @@ public class Rose extends Game {
 				setScreen(applicationScreen);
 				break;
 			}
-			case SYNCTEST: {
+			case TEST: {
 				if (testGame == null) {
 					testGame = new TestGame();
 				}
@@ -99,7 +97,6 @@ public class Rose extends Game {
 
 	@Override
 	public void create() {
-		BoxSizes bs = new BoxSizes();
 		LoadingScreen loadingScreen = new LoadingScreen(this);
 		appPreferences = new AppPreferences();
 		setScreen(loadingScreen);

@@ -1,5 +1,6 @@
 package com.rose.tests;
 
+import com.rose.ggpo.GGPOErrorCode;
 import com.rose.ggpo.GGPOEventCode;
 import com.rose.ggpo.GameInput;
 import com.rose.ggpo.GgpoEvent;
@@ -26,11 +27,12 @@ public class DummyClient extends Udp.Callbacks {
     private boolean connecting;
     private int next_recommended_sleep;
 
-    public DummyClient() throws IOException {
+    public DummyClient(SendInputTest callbacks) throws IOException {
         Udp udp = new Udp(this);
         poll = udp.getPoll();
         server_endpoint = new UdpProto(udp, poll, SERVER_IP, PORT_NUM);
         sync = new Sync();
+        sync.setCallbacks(callbacks);
         local_connect_status = new UdpMsg.ConnectStatus[2];
         for(int i = 0; i < local_connect_status.length; i++) {
             local_connect_status[i] = new UdpMsg.ConnectStatus();
@@ -57,8 +59,6 @@ public class DummyClient extends Udp.Callbacks {
                 int total_min_confirmed = poll2players(current_frame);
                 if (total_min_confirmed >= 0) {
                     assert (total_min_confirmed != Integer.MAX_VALUE);
-                    System.out.println("setting confirmed frame in sync to: " +
-                            total_min_confirmed);
                     sync.setLastConfirmedFrame(total_min_confirmed);
                 }
 
@@ -90,23 +90,27 @@ public class DummyClient extends Udp.Callbacks {
         return total_min_confirmed;
     }
 
-    public void addLocalInput(int frame, int input) {
+    public GGPOErrorCode addLocalInput(int frame, int input) {
+        if(sync.isInRollback()) {
+            System.out.println("in rollback");
+            return GGPOErrorCode.GGPO_ERRORCODE_IN_ROLLBACK;
+        }
         if(synchronizing) {
             System.out.println("synchronizing");
 
-            return;
+            return GGPOErrorCode.GGPO_ERRORCODE_NOT_SYNCHRONIZED;
         }
 
         if(server_endpoint.getPlayerNumber() < 0 || server_endpoint.getPlayerNumber() > 2) {
             System.out.println("invalid player");
 
-            return;
+            return GGPOErrorCode.GGPO_ERRORCODE_INVALID_PLAYER_HANDLE;
         }
 
 
         if(!sync.addLocalInput(0, input)) {
-            System.out.println("Failed to add local input");
-            return;
+            System.out.println("Prediction threshold reached");
+            return GGPOErrorCode.GGPO_ERRORCODE_PREDICTION_THRESHOLD;
         }
 
         GameInput gameInput = new GameInput(sync.frame_count, input);
@@ -114,6 +118,8 @@ public class DummyClient extends Udp.Callbacks {
             local_connect_status[0].last_frame = gameInput.getFrame();
             server_endpoint.sendInput(gameInput, local_connect_status[0]); // <-- TODO: Remove when passing local connect status is necessary
         }
+
+        return GGPOErrorCode.GGPO_OK;
     }
 
     public ConnectState getCurrentStatus() {
@@ -148,10 +154,6 @@ public class DummyClient extends Udp.Callbacks {
                     if(!local_connect_status[1].disconnected) {
                         int current_frame = local_connect_status[1].last_frame;
                         int new_remote = event.input.input.getFrame();
-                        System.out.println(
-                            "current frame = " + current_frame +
-                            " new remote frame: " + new_remote
-                        );
                         sync.addRemoteInput(1, event.input.input);
                         local_connect_status[1].last_frame =
                             event.input.input.getFrame();
@@ -166,7 +168,9 @@ public class DummyClient extends Udp.Callbacks {
 
     private void checkInitialSync() {
         if(synchronizing) {
-            if(server_endpoint.isInitialized() && !server_endpoint.isSynchronized() && !local_connect_status[1].disconnected) {
+            if(server_endpoint.isInitialized() &&
+                !server_endpoint.isSynchronized() &&
+                !local_connect_status[1].disconnected) {
                 return;
             }
         }
@@ -174,5 +178,9 @@ public class DummyClient extends Udp.Callbacks {
 //        GgpoEvent event = new GgpoEvent(GGPOEventCode.GGPO_EVENTCODE_RUNNING);
         // TODO: handle first running event
         synchronizing = false;
+    }
+
+    public int[] syncInput() {
+        return sync.syncInputs();
     }
 }

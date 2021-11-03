@@ -7,6 +7,7 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -16,6 +17,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.rose.actors.ButtonActor;
 import com.rose.input.TouchInput;
+
+import java.util.ArrayList;
 
 public class TouchControlsUI extends InputAdapter {
     private final TextureAtlas textureAtlas;
@@ -30,8 +33,11 @@ public class TouchControlsUI extends InputAdapter {
     private ButtonActor s_button;
     private int input_combo;
     private boolean show_buttons = true;
+    private ArrayList<ButtonActor> buttons;
 
     public TouchControlsUI(Stage stage) {
+        buttons = new ArrayList<>(9);
+
         Gdx.input.setInputProcessor(this);
         textureAtlas = new TextureAtlas(Gdx.files.internal("ui_elements.atlas"));
 
@@ -40,7 +46,7 @@ public class TouchControlsUI extends InputAdapter {
         style.up = new TextureRegionDrawable(new Texture(Gdx.files.internal("pause_button.png")));
         pause_button = new ButtonActor(style);
         pause_button.setSize(50, 50);
-        pause_button.setPosition(stage.getWidth() / 2.0f - pause_button.getWidth(), stage.getHeight() - pause_button.getHeight());
+        pause_button.setPosition(stage.getWidth() / 2.0f - pause_button.getWidth() / 2.0f, stage.getHeight() - pause_button.getHeight());
         pause_button.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
@@ -56,9 +62,9 @@ public class TouchControlsUI extends InputAdapter {
 
 
         });
-        stage.addActor(pause_button);
+        buttons.add(pause_button);
 
-        Button pause_button = new ButtonActor(new Button.ButtonStyle());
+        ButtonActor pause_button = new ButtonActor(new Button.ButtonStyle());
         pause_button.setSize(30, 30);
         pause_button.setPosition(stage.getWidth() / 2.0f, stage.getHeight() - 30);
         pause_button.addListener(new InputListener() {
@@ -90,7 +96,7 @@ public class TouchControlsUI extends InputAdapter {
                 input_combo -= LEFT;
             }
         });
-        stage.addActor(l_button);
+        buttons.add(l_button);
 
         style = new Button.ButtonStyle();
         style.up = new TextureRegionDrawable(textureAtlas.findRegion("r_btn_up"));
@@ -112,7 +118,7 @@ public class TouchControlsUI extends InputAdapter {
                 input_combo -= RIGHT;
             }
         });
-        stage.addActor(r_button);
+        buttons.add(r_button);
 
         style = new Button.ButtonStyle();
         style.up = new TextureRegionDrawable(textureAtlas.findRegion("a_btn_up"));
@@ -134,7 +140,7 @@ public class TouchControlsUI extends InputAdapter {
                 input_combo -= A_BTN;
             }
         });
-        stage.addActor(a_button);
+        buttons.add(a_button);
 
         style = new Button.ButtonStyle();
         style.up = new TextureRegionDrawable(textureAtlas.findRegion("b_btn_up"));
@@ -156,7 +162,7 @@ public class TouchControlsUI extends InputAdapter {
                 input_combo -= B_BTN;
             }
         });
-        stage.addActor(b_button);
+        buttons.add(b_button);
 
         style = new Button.ButtonStyle();
         style.up = new TextureRegionDrawable(textureAtlas.findRegion("c_btn_up"));
@@ -178,7 +184,7 @@ public class TouchControlsUI extends InputAdapter {
                 input_combo -= C_BTN;
             }
         });
-        stage.addActor(c_button);
+        buttons.add(c_button);
 
         style = new Button.ButtonStyle();
         style.up = new TextureRegionDrawable(textureAtlas.findRegion("d_btn_up"));
@@ -200,7 +206,7 @@ public class TouchControlsUI extends InputAdapter {
                 input_combo -= D_BTN;
             }
         });
-        stage.addActor(d_button);
+        buttons.add(d_button);
 
         style = new Button.ButtonStyle();
         style.up = new TextureRegionDrawable(textureAtlas.findRegion("t_btn_up"));
@@ -222,7 +228,7 @@ public class TouchControlsUI extends InputAdapter {
                 input_combo -= T_BTN;
             }
         });
-        stage.addActor(t_button);
+        buttons.add(t_button);
 
 //        s_button = new Button(skin, "small");
 //        s_button.setSize(30, 30);
@@ -242,13 +248,31 @@ public class TouchControlsUI extends InputAdapter {
 //        }
 //        });
 //        stage.addActor(s_button);
+
+        style = new Button.ButtonStyle();
+        style.up = new TextureRegionDrawable(new Texture(Gdx.files.internal("pause_button.png")));
+        pause_button = new ButtonActor(style);
+        pause_button.setSize(50, 50);
+        pause_button.setPosition(stage.getWidth() / 2.0f - pause_button.getWidth() / 2.0f, stage.getHeight() - pause_button.getHeight());
+        pause_button.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                for(int i = 0; i < buttons.size()-1; i++) {
+                    buttons.get(i).drawable = !buttons.get(i).drawable;
+                }
+                return super.touchDown(event, x, y, pointer, button);
+            }
+
+
+        });
+        buttons.add(pause_button);
     }
 
     public int getInput() {
         return input_combo;
     }
 
-    public void showUI(Stage stage) {
-
+    public ArrayList<ButtonActor> getButtons() {
+        return buttons;
     }
 }

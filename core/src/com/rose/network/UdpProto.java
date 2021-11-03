@@ -349,12 +349,6 @@ public class UdpProto implements IPollSink {
             }
         }
 
-        if(pending_output.front() != null) {
-            System.out.println("should pop output buffer?");
-            System.out.println("pending output size: " + pending_output.size());
-            System.out.println("pending output front frame: " + pending_output.front().getFrame());
-            System.out.println("ack frame: " + msg.payload.input.ack_frame);
-        }
         while(pending_output.size() > 0 && pending_output.front().getFrame() < msg.payload.input.ack_frame) {
             last_acked_input = new GameInput(pending_output.front().getFrame(), pending_output.front().getInput());
             pending_output.pop();

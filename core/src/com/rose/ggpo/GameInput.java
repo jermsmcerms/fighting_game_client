@@ -29,4 +29,8 @@ public class GameInput {
     public void setInput(int input) {
         this.input = input;
     }
+
+    public void incrementFrame() {
+        frame++;
+    }
 }

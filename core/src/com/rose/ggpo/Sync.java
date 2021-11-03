@@ -1,7 +1,5 @@
 package com.rose.ggpo;
 
-import com.rose.management.SaveGameState;
-
 import java.util.ArrayList;
 
 public class Sync {
@@ -15,7 +13,7 @@ public class Sync {
 
     public Sync() {
         inRollBack = false;
-        frame_count = -1; // TODO: change back to zero soon
+        frame_count = 0; // TODO: change back to zero soon
         last_confirmed_frame = -1;
         max_prediction_frames = 10;
 
@@ -123,7 +121,7 @@ public class Sync {
 
     private void resetPrediction(int frame) {
         for(int i = 0; i < 2; i++) {
-            input_queues.get(i).resetPrediction(frame);
+            input_queues.get(i).resetPrediction();
         }
     }
 

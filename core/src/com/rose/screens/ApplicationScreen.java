@@ -2,13 +2,12 @@ package com.rose.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 
 import com.rose.actors.Fighter;
 import com.rose.actors.Ken;
 import com.rose.actors.Ryu;
+import com.rose.actors.TextureActor;
 import com.rose.ggpo.GgpoCallbacks;
 import com.rose.ggpo.GgpoEvent;
 import com.rose.main.Rose;
@@ -17,8 +16,6 @@ import com.rose.management.NonGameState;
 import com.rose.management.SaveGameState;
 import com.rose.management.Utilities;
 import com.rose.network.Client;
-import com.rose.renderering.Renderer;
-import com.rose.ui.MatchUI;
 import com.rose.ui.TouchControlsUI;
 
 import java.io.ByteArrayInputStream;
@@ -26,38 +23,33 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.ThreadLocalRandom;
 
-public class MainScreen extends ScreenBase implements GgpoCallbacks {
-    private static final boolean DEBUG = false;
-    private static final String gameName = "Rose";
+public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
     private final boolean trainingMode;
-//    private MatchUI ui;
-    private OrthographicCamera camera;
 
     private Client client;
-    private Fighter[] fighters;
     private Ryu ryu;
     private Ken ken;
 
     private final int playerNumber;
     private long next, now;
     private TouchControlsUI touchInputUI;
-    private Renderer renderer;
     private GameState gs;
     private NonGameState ngs;
 
-    private int randomInput;
     private String checksum;
 
-    public MainScreen(Rose parent) {
+    private TextureActor background;
+    private TextureActor ui_overlay;
+
+    public ApplicationScreen(Rose parent) {
         super(parent);
         trainingMode = true;
         playerNumber = 1;
         initMatch();
     }
 
-    public MainScreen(Rose parent, Client client) {
+    public ApplicationScreen(Rose parent, Client client) {
         super(parent);
         this.client = client;
         playerNumber = client.getPlayerNumber();
@@ -71,13 +63,19 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     @Override
     public void show() {
         super.show();
-//        if(ui != null) {
-//            ui.showUI(stage);
-//        }
+        // Add background actor.
+        stage.addActor(background);
+        // Add UI overlay actor.
+        stage.addActor(ui_overlay);
+        // Add fighters
+        for(int i = 0; i < gs.getFighters().length; i++) {
+            stage.addActor(gs.getFighters()[i]);
+        }
 
-//        if(touchInputUI != null) {
-//            touchInputUI.showUI(stage);
-//        }
+        // add touch buttons
+        for(int i = 0; i < touchInputUI.getButtons().size(); i++) {
+            stage.addActor(touchInputUI.getButtons().get(i));
+        }
     }
 
     @Override
@@ -98,7 +96,8 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
     }
 
     private void initMatch() {
-//        ui = new MatchUI();
+        background = new TextureActor(Gdx.files.internal("sample_background.png"));
+        ui_overlay = new TextureActor(Gdx.files.internal("match_ui_overlay.png"));
         touchInputUI = new TouchControlsUI(stage);
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 420, 220);
@@ -106,52 +105,27 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
 
         gs = new GameState(new Fighter[]{ryu, ken}, playerNumber, false);
         ngs = new NonGameState();
-        renderer = new Renderer(stage);
-        randomInput = getRandomInput();
     }
 
     private void runFrame(float delta) {
         super.render(delta);
-        int input = 0;
-        if(DEBUG) {
-//            if(playerNumber == 1) {
-//                randomInput = ThreadLocalRandom.current().nextInt(3);
-//            } else if (playerNumber == 2) {
-//                randomInput = 0;
-//            }
-            randomInput =  ThreadLocalRandom.current().nextInt(3);
-        } else {
-            input = touchInputUI.getInput();
-        }
+        int input = touchInputUI.getInput();
         int[] inputs;
         if(!trainingMode) {
             boolean result;
-            if(DEBUG) {
-                result = client.addLocalInput(randomInput);
-            } else {
-                result = client.addLocalInput(input);
-            }
+            result = client.addLocalInput(input);
             if (result) {
-//                inputs = client.syncInput();
-//                if (inputs != null) {
-//                    advanceFrame(delta, inputs);
-//                }
+                inputs = client.syncInput();
+                if (inputs != null) {
+                    advanceFrame(delta, inputs);
+                }
             }
         } else {
             inputs = new int[]{input, 0};
             advanceFrame(delta, inputs);
         }
 
-        renderer.draw(gs, ngs);
-    }
-
-    private int getRandomInput() {
-        int retval = 1;
-        int randomInt = ThreadLocalRandom.current().nextInt(-1, 8);
-        if(randomInt == -1) {
-            return 0;
-        }
-        return retval << randomInt;
+        stage.draw();
     }
 
     private void buildFighters() {
@@ -218,10 +192,7 @@ public class MainScreen extends ScreenBase implements GgpoCallbacks {
 
     @Override
     public Object freeBuffer(Object buffer) {
-        if(buffer != null) {
-            buffer = null;
-        }
-        return buffer;
+        return null;
     }
 
     @Override

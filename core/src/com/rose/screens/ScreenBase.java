@@ -2,31 +2,28 @@ package com.rose.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
 import com.rose.main.Rose;
 
 public class ScreenBase implements Screen {
     protected Rose parent;
     protected Stage stage;
     protected OrthographicCamera camera;
-    protected Music music;
-
+    protected Skin default_skin;
+    protected Table table;
 
     public ScreenBase(Rose parent) {
         this.parent = parent;
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 420, 220);
-        Viewport viewport = new FitViewport(420, 220, camera);
-        stage = new Stage(viewport, new SpriteBatch());
-        Gdx.input.setInputProcessor(stage);
+        stage = new Stage(new FitViewport(camera.viewportWidth, camera.viewportHeight, camera));
+        default_skin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
+        table = new Table();
     }
 
     @Override
@@ -36,11 +33,14 @@ public class ScreenBase implements Screen {
     }
 
     @Override
+    public void dispose() {
+        stage.dispose();
+        parent.dispose();
+    }
+
+    @Override
     public void render(float delta) {
-//        ScreenUtils.clear(0.2f, 0.2f, 0.2f, 1);
-//        camera.update();
-//        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1/60f));
-//        stage.draw();
+        ScreenUtils.clear(0.2f, 0.2f, 0.2f, 1);
     }
 
     @Override
@@ -61,12 +61,5 @@ public class ScreenBase implements Screen {
     @Override
     public void hide() {
 
-    }
-
-    @Override
-    public void dispose() {
-        stage.dispose();
-        parent.dispose();
-        music.dispose();
     }
 }

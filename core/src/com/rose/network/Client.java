@@ -3,7 +3,7 @@ package com.rose.network;
 import com.rose.ggpo.GameInput;
 import com.rose.ggpo.Poll;
 import com.rose.ggpo.Sync;
-import com.rose.screens.MainScreen;
+import com.rose.screens.ApplicationScreen;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -18,7 +18,7 @@ public class Client extends Udp.Callbacks {
     private final long disconnect_notify_start = 10000000000L;
     public UdpProto server_end_point;
     public UdpProto[] endpoints;
-    private MainScreen callbacks;
+    private ApplicationScreen callbacks;
     private boolean synchronizing;
     private boolean allConnected;
     private int playerNumber;
@@ -208,7 +208,7 @@ public class Client extends Udp.Callbacks {
         doPoll(0);
     }
 
-    public void setCallbacks(MainScreen screen) {
+    public void setCallbacks(ApplicationScreen screen) {
         this.callbacks = screen;
         sync.setCallbacks(callbacks);
     }

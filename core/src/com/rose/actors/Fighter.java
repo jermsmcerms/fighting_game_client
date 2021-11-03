@@ -2,15 +2,15 @@ package com.rose.actors;
 
 import static com.rose.constants.Constants.*;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.rose.animation.AnimationState;
 import com.rose.animation.SpriteAnimation;
 import com.rose.physics.Boxes;
@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class Fighter implements Serializable {
+public class Fighter extends Actor implements Serializable {
     public static final long serialVersionUID = 43L;
     protected ArrayList<Boxes> ground_boxes;
     protected boolean facingRight;
@@ -93,7 +93,8 @@ public class Fighter implements Serializable {
         return attacking;
     }
 
-    public void draw(float dt, SpriteBatch batch, OrthographicCamera camera) {
+    @Override
+    public void draw(Batch batch, float parentAlpha) {
         animation = animation_map.get(anim_state);
         if(anim_state_time > (animation.getAnimationDuration())) {
             anim_state_time -= animation.getAnimationDuration();
@@ -286,39 +287,6 @@ public class Fighter implements Serializable {
         box_data[0][3] = anchor_point.x - (box_data[0][0] / 2 - 1);
         box_data[0][4] = anchor_point.y;
         initializePhysicsBoxes(box_data, anchor_point);
-    }
-
-    private boolean testOverlap(Rectangle jab_hitbox, ArrayList<Boxes> ground_boxes) {
-        for(int i = 1; i < ground_boxes.size(); i++) {
-            Boxes test_box = ground_boxes.get(i);
-            if( jab_hitbox.x < test_box.getX() + test_box.getWidth() &&
-                jab_hitbox.x + jab_hitbox.getWidth() > test_box.getX() &&
-                jab_hitbox.y < test_box.getY() + test_box.getHeight() &&
-                jab_hitbox.y + jab_hitbox.getHeight() > test_box.getY()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void faceOpponent(Fighter fighter) {
-        Boxes center = ground_boxes.get(3);
-        Boxes other_center = fighter.ground_boxes.get(3);
-        facingRight =
-            center.getX() + center.getWidth() / 2f <
-                other_center.getX() + other_center.getWidth() / 2f;
-    }
-
-    public Vector2 getAnchorPoint() {
-        return anchor_point;
-    }
-
-    public AnimationState getAnimationState() {
-        return anim_state;
-    }
-
-    public float getAnimStateTime() {
-        return anim_state_time;
     }
 
     public void keepInBounds() {

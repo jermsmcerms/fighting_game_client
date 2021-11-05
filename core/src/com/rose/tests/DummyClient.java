@@ -26,13 +26,16 @@ public class DummyClient extends Udp.Callbacks {
     private final UdpMsg.ConnectStatus[] local_connect_status;
     private boolean connecting;
     private int next_recommended_sleep;
+    private SendInputTest callbacks;
 
     public DummyClient(SendInputTest callbacks) throws IOException {
+        this.callbacks = callbacks;
         Udp udp = new Udp(this);
         poll = udp.getPoll();
         server_endpoint = new UdpProto(udp, poll, SERVER_IP, PORT_NUM);
         sync = new Sync();
-        sync.setCallbacks(callbacks);
+        sync.setCallbacks(this.callbacks);
+        sync.setFrameDelay(0, 2);
         local_connect_status = new UdpMsg.ConnectStatus[2];
         for(int i = 0; i < local_connect_status.length; i++) {
             local_connect_status[i] = new UdpMsg.ConnectStatus();
@@ -48,11 +51,11 @@ public class DummyClient extends Udp.Callbacks {
     }
 
     public void doPoll() {
-        poll.pump(0);
-        processUdpProtocolEvents();
         if(!sync.isInRollback()) {
-            sync.checkSimulation(0);
+            poll.pump(0);
+            processUdpProtocolEvents();
             if (!connecting && !synchronizing) {
+                sync.checkSimulation(0);
                 int current_frame = sync.frame_count;
                 server_endpoint.setLocalFrameNumber(current_frame);
 
@@ -67,8 +70,9 @@ public class DummyClient extends Udp.Callbacks {
                             Math.max(0, server_endpoint.recommendFrameDelay());
 
                     if (interval > 0) {
-                        System.out.println("try to sleep for: " +
-                                (1000000000 * interval / 60) + " frames");
+                        GgpoEvent event = new GgpoEvent(GGPOEventCode.GGPO_EVENTCODE_TIMESYNC);
+                        event.timeSync.frames_ahead = interval;
+                        callbacks.onEvent(event);
                         next_recommended_sleep =
                                 current_frame + RECOMMENDATION_INTERVAL;
                     }
@@ -154,6 +158,7 @@ public class DummyClient extends Udp.Callbacks {
                     if(!local_connect_status[1].disconnected) {
                         int current_frame = local_connect_status[1].last_frame;
                         int new_remote = event.input.input.getFrame();
+                        System.out.println("adding remote input");
                         sync.addRemoteInput(1, event.input.input);
                         local_connect_status[1].last_frame =
                             event.input.input.getFrame();

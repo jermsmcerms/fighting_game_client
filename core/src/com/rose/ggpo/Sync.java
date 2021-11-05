@@ -1,5 +1,7 @@
 package com.rose.ggpo;
 
+import com.rose.management.SaveGameState;
+
 import java.util.ArrayList;
 
 public class Sync {
@@ -15,7 +17,7 @@ public class Sync {
         inRollBack = false;
         frame_count = 0; // TODO: change back to zero soon
         last_confirmed_frame = -1;
-        max_prediction_frames = 10;
+        max_prediction_frames = 8;
 
         input_queues = new ArrayList<InputQueue>(2);
         for(int i = 0; i < 2; i++) {
@@ -69,11 +71,12 @@ public class Sync {
     public void saveCurrentFrame() {
         SavedState.SavedFrame state = savedState.frames[savedState.head];
         state.frame = frame_count;
-//        SaveGameState sgs = callbacks.saveGameState();
-//        state.cbuf = sgs.obj_data.length;
-//        state.buf = new byte[state.cbuf];
-//        System.arraycopy(sgs.obj_data, 0, state.buf, 0, state.cbuf);
-//        state.checkSum = sgs.checksum;
+        System.out.println("saving frame " + state.frame);
+        SaveGameState sgs = callbacks.saveGameState();
+        state.cbuf = sgs.obj_data.length;
+        state.buf = new byte[state.cbuf];
+        System.arraycopy(sgs.obj_data, 0, state.buf, 0, state.cbuf);
+        state.checkSum = sgs.checksum;
         savedState.head = (savedState.head + 1) % savedState.frames.length;
     }
 
@@ -88,23 +91,27 @@ public class Sync {
         int framecount = frame_count;
         int count = frame_count - seek_to;
         inRollBack = true;
-        System.out.println("rolling back " + framecount + " frames");
         loadFrame(seek_to);
+        assert(frame_count == seek_to);
         resetPrediction(frame_count);
-        for(int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++) {
             callbacks.advanceFrame(0);
         }
         assert(framecount == frame_count);
         inRollBack = false;
+
     }
 
     public void loadFrame(int frame) {
         if(frame == frame_count) {
+            System.out.println("No need to roll back 0 frames. (frame: " + frame + ")");
             return;
         }
+        System.out.println("loading frame: " + frame);
         savedState.head = findSavedFrameIndex(frame);
         SavedState.SavedFrame state = savedState.frames[savedState.head];
-//        callbacks.loadFrame(state.buf, state.cbuf);
+
+        callbacks.loadFrame(state.buf, state.cbuf);
         frame_count = state.frame;
         savedState.head = (savedState.head + 1) % savedState.frames.length;
     }
@@ -114,6 +121,12 @@ public class Sync {
         for(i = 0; i < savedState.frames.length; i++) {
             if(savedState.frames[i].frame == frame) {
                 break;
+            }
+        }
+        if(i == savedState.frames.length) {
+            System.out.println("requested frame not in library");
+            for(i = 0; i < savedState.frames.length; i++) {
+                System.out.println("saved frame: " + savedState.frames[i].frame);
             }
         }
         return i;

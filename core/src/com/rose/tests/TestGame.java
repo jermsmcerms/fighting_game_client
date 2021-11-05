@@ -30,7 +30,7 @@ public class TestGame implements GgpoCallbacks {
     private static final int NUM_PLAYERS = 2;
     private static final int MAX_TEST_FRAMES = 100; // 1 frame at 60fps
     private static final int MAX_INPUT_QUEUE_TEST_FRAMES = 64;
-    private static final int MAX_SEND_INPUT_FRAMES = 900;
+    private static final int MAX_SEND_INPUT_FRAMES = 5000;
     private GameState gs;
     private final NonGameState ngs;
     private InputQueueTest queueTest;

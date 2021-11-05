@@ -159,7 +159,6 @@ public class UdpProto implements IPollSink {
                 if( state.running.last_network_stats_interval <= 0 ||
                     state.running.last_network_stats_interval +
                         NETWORK_STATS_INTERVAL < now) {
-                    System.out.println("Update network stats");
                     state.running.last_network_stats_interval = now;
                 }
                 break;

@@ -153,5 +153,16 @@ public class SendInputTest implements GgpoCallbacks {
         if (event.getCode() == GGPOEventCode.GGPO_EVENTCODE_CONNECTED_TO_SERVER) {
             ngs.setConnectState(event.connected.playerHandle, NonGameState.PlayerConnectState.SYNCHRONIZING);
         }
-        return false;    }
+
+        if(event.getCode() == GGPOEventCode.GGPO_EVENTCODE_TIMESYNC) {
+            try {
+                System.out.println("try to sleep for: " +
+                        (1000000000L * event.timeSync.frames_ahead / 60000000) + " ms");
+                Thread.sleep((1000000000L * event.timeSync.frames_ahead / 60000000L));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
 }

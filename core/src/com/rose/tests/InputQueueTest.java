@@ -55,7 +55,7 @@ public class InputQueueTest {
         Note:   Player 2's inputs are not delayed as they have already been sent over the network
                 after being delayed on their system.
      */
-    private static final int DEFAULT_FRAME_DELAY = 2;
+    private static final int DEFAULT_FRAME_DELAY = 3;
 
     private final Sync sync;
     private int current_frame;

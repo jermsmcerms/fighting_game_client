@@ -18,7 +18,6 @@ public class ButtonActor extends Button {
     @Override
     public void draw (Batch batch, float parentAlpha) {
         if(drawable) {
-            System.out.println(this.getStyle().up);
             super.draw(batch, parentAlpha);
         }
     }

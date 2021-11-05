@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 
 public class TextureActor extends Actor {
-    private Texture texture;
+    protected Texture texture;
 
     public TextureActor(FileHandle path) {
         texture = new Texture(path);

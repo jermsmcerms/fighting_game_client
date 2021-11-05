@@ -70,4 +70,8 @@ public class GameState implements Serializable {
     public Fighter[] getFighters() {
         return fighters;
     }
+
+    public boolean gameOver() {
+        return fighters[0].getHealth() <= 0 || fighters[1].getHealth() <= 0;
+    }
 }

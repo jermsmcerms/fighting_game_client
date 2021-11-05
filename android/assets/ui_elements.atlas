@@ -66,14 +66,14 @@ eight
   orig: 25, 30
   offset: 0, 0
   index: -1
-enery_bar
+energy_bar
   rotate: false
   xy: 1, 168
   size: 110, 6
   orig: 110, 6
   offset: 0, 0
   index: -1
-enery_bar_border
+energy_bar_border
   rotate: false
   xy: 113, 168
   size: 114, 10

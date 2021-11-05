@@ -2,12 +2,15 @@ package com.rose.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 
 import com.rose.actors.Fighter;
 import com.rose.actors.Ken;
 import com.rose.actors.Ryu;
 import com.rose.actors.TextureActor;
+import com.rose.actors.ui.HealthBar;
 import com.rose.ggpo.GgpoCallbacks;
 import com.rose.ggpo.GgpoEvent;
 import com.rose.main.Rose;
@@ -41,6 +44,8 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
 
     private TextureActor background;
     private TextureActor ui_overlay;
+    private HealthBar p1_health_bar;
+    private HealthBar p2_health_bar;
 
     public ApplicationScreen(Rose parent) {
         super(parent);
@@ -67,6 +72,8 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
         stage.addActor(background);
         // Add UI overlay actor.
         stage.addActor(ui_overlay);
+        stage.addActor(p1_health_bar);
+        stage.addActor(p2_health_bar);
         // Add fighters
         for(int i = 0; i < gs.getFighters().length; i++) {
             stage.addActor(gs.getFighters()[i]);
@@ -98,6 +105,10 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
     private void initMatch() {
         background = new TextureActor(Gdx.files.internal("sample_background.png"));
         ui_overlay = new TextureActor(Gdx.files.internal("match_ui_overlay.png"));
+        TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("ui_elements.atlas"));
+        TextureRegion region = atlas.findRegion("energy_bar");
+        p1_health_bar = new HealthBar(region, new Vector2(32, stage.getHeight() - 25f), false);
+        p2_health_bar = new HealthBar(region, new Vector2(stage.getWidth() - 32, stage.getHeight() - 25), true);
         touchInputUI = new TouchControlsUI(stage);
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 420, 220);
@@ -125,7 +136,14 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
             advanceFrame(delta, inputs);
         }
 
+        p1_health_bar.update((int)gs.getFighters()[0].getHealth());
+        p2_health_bar.update((int)gs.getFighters()[1].getHealth());
+
         stage.draw();
+
+        if(gs.gameOver()) {
+            parent.changeScreen(Rose.ScreenType.MENU);
+        }
     }
 
     private void buildFighters() {

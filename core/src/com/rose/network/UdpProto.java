@@ -1,5 +1,6 @@
 package com.rose.network;
 
+import com.rose.ggpo.GGPONetworkStatus;
 import com.rose.ggpo.GameInput;
 import com.rose.ggpo.IPollSink;
 import com.rose.ggpo.Poll;
@@ -21,6 +22,7 @@ public class UdpProto implements IPollSink {
     private static final long RUNNING_RETRY_INTERVAL    = 200000000L;
     private static final long QUALITY_REPORT_INTERVAL   = 100000000L;
     private static final long NETWORK_STATS_INTERVAL    = 100000000L;
+    private static final int UDP_HEADER_SIZE = 28;
     private int next_send_seq;
     private final RingBuffer<GameInput> pending_output;
     private final RingBuffer<QueueEntry> send_queue;
@@ -47,6 +49,11 @@ public class UdpProto implements IPollSink {
     private boolean disconnect_event_sent;
     private long round_trip_time;
     private int local_frame_advantage;
+    private int kbps_sent;
+    private long stats_start_time;
+    private int bytes_sent;
+    private int packets_sent;
+
 
     public UdpProto(Udp udp, Poll poll, String serverIp, int portNum) {
         this.udp = udp;
@@ -104,7 +111,9 @@ public class UdpProto implements IPollSink {
     }
 
     public void sendMsg(UdpMsg msg) {
-        last_send_time = System.nanoTime();        
+        packets_sent++;
+        last_send_time = System.nanoTime();
+        bytes_sent += msg.getPacketSize();
         msg.hdr.sequenceNumber = next_send_seq++;
         msg.hdr.magicNumber = magic_number;
         send_queue.push(new QueueEntry(System.nanoTime(), server_addr, msg));
@@ -159,6 +168,7 @@ public class UdpProto implements IPollSink {
                 if( state.running.last_network_stats_interval <= 0 ||
                     state.running.last_network_stats_interval +
                         NETWORK_STATS_INTERVAL < now) {
+                    updateNetworkStats();
                     state.running.last_network_stats_interval = now;
                 }
                 break;
@@ -166,6 +176,27 @@ public class UdpProto implements IPollSink {
                 break;
         }
         return true;
+    }
+
+    private void updateNetworkStats() {
+        long now = System.nanoTime();
+        if(stats_start_time == 0) {
+            stats_start_time = now + 1;
+        }
+
+        int total_bytes_sent = bytes_sent + (UDP_HEADER_SIZE * packets_sent);
+        float seconds = (float)((now - stats_start_time) / 100000000.0f);
+        float bps = total_bytes_sent / seconds;
+        float udp_overhead = (float)(100.0 * (UDP_HEADER_SIZE * packets_sent) / bytes_sent);
+        kbps_sent = (int)(bps / 1024);
+
+        System.out.printf("Network Stats -- Bandwidth: %d KBps   Packets Sent: %5d (%.2f pps)   " +
+            "KB Sent: %.2f    UDP Overhead: %.2f %%.\n",
+            kbps_sent,
+            packets_sent,
+            (float)(packets_sent * 1000000000L / (now - stats_start_time)),
+            total_bytes_sent / 1024.0,
+            udp_overhead);
     }
 
 
@@ -449,13 +480,25 @@ public class UdpProto implements IPollSink {
     }
 
     public void setLocalFrameNumber(int local_frame) {
-        long remote_frame = last_received_input.getFrame() +
-            (round_trip_time * 60 / 1000000000L);
+        System.out.println("last received input frame: " + last_received_input.getFrame() +
+            " round trip time: " + (round_trip_time * 60 / 100000000) + " ms");
+        long remote_frame = last_received_input.getFrame() + (round_trip_time * 60 / 100000000);
         local_frame_advantage = (int)(remote_frame - local_frame);
+        System.out.println("remote frame: " + remote_frame + " local frame advantage: " + local_frame_advantage);
     }
 
     public int recommendFrameDelay() {
         return time_sync.recommend_frame_wait_duration(false);
+    }
+
+    public GGPONetworkStatus getNetworkStats() {
+        GGPONetworkStatus status = new GGPONetworkStatus();
+        status.network.kbps_sent = kbps_sent;
+        status.network.send_queue_length = pending_output.size();
+        status.network.ping = round_trip_time;
+        status.timesync.local_frames_behind = remote_frame_advantage;
+        status.timesync.remote_frames_behind = local_frame_advantage;
+        return status;
     }
 }
 

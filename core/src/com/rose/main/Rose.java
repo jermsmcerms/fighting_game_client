@@ -1,6 +1,7 @@
 package com.rose.main;
 
 import com.badlogic.gdx.Game;
+import com.rose.network.ConnectState;
 import com.rose.tests.TestGame;
 import com.rose.network.Client;
 import com.rose.management.AppPreferences;
@@ -59,17 +60,11 @@ public class Rose extends Game {
 						applicationScreen = new ApplicationScreen(this);
 					} else {
 						Client client;
-						try {
-							client = new Client();
-							while (!client.getAllConnected()) {
-								client.doPoll(0);
-							}
-							client.setPlayerNumber();
-							applicationScreen = new ApplicationScreen(this, client);
-							client.setCallbacks(applicationScreen);
-						} catch (IOException e) {
-							e.printStackTrace();
+						client = new Client();
+						while (!(client.getCurrentStatus() == ConnectState.Running)) {
+							client.doPoll(0);
 						}
+						applicationScreen = new ApplicationScreen(this, client);
 					}
 				}
 				setScreen(applicationScreen);
@@ -77,7 +72,7 @@ public class Rose extends Game {
 			}
 			case TEST: {
 				if (testGame == null) {
-					testGame = new TestGame();
+					testGame = new TestGame(this);
 				}
 				break;
 			}

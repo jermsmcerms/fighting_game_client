@@ -71,7 +71,6 @@ public class Sync {
     public void saveCurrentFrame() {
         SavedState.SavedFrame state = savedState.frames[savedState.head];
         state.frame = frame_count;
-        System.out.println("saving frame " + state.frame);
         SaveGameState sgs = callbacks.saveGameState();
         state.cbuf = sgs.obj_data.length;
         state.buf = new byte[state.cbuf];
@@ -104,7 +103,7 @@ public class Sync {
 
     public void loadFrame(int frame) {
         if(frame == frame_count) {
-            System.out.println("No need to roll back 0 frames. (frame: " + frame + ")");
+            System.out.println("skipping nop");
             return;
         }
         System.out.println("loading frame: " + frame);

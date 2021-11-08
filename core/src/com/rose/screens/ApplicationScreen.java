@@ -1,21 +1,26 @@
 package com.rose.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.rose.actors.Fighter;
 import com.rose.actors.Ken;
 import com.rose.actors.Ryu;
 import com.rose.actors.TextureActor;
 import com.rose.actors.ui.HealthBar;
+import com.rose.ggpo.GGPOErrorCode;
+import com.rose.ggpo.GGPOEventCode;
 import com.rose.ggpo.GgpoCallbacks;
 import com.rose.ggpo.GgpoEvent;
 import com.rose.main.Rose;
 import com.rose.management.GameState;
 import com.rose.management.NonGameState;
+import com.rose.management.PerformanceMonitor;
 import com.rose.management.SaveGameState;
 import com.rose.management.Utilities;
 import com.rose.network.Client;
@@ -29,6 +34,7 @@ import java.security.NoSuchAlgorithmException;
 
 public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
     private final boolean trainingMode;
+    private PerformanceMonitor pf;
 
     private Client client;
     private Ryu ryu;
@@ -57,6 +63,7 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
     public ApplicationScreen(Rose parent, Client client) {
         super(parent);
         this.client = client;
+        this.client.setCallbacks(this);
         playerNumber = client.getPlayerNumber();
         trainingMode = false;
         now = next = System.nanoTime();
@@ -69,9 +76,9 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
     public void show() {
         super.show();
         // Add background actor.
-        stage.addActor(background);
+//        stage.addActor(background);
         // Add UI overlay actor.
-        stage.addActor(ui_overlay);
+//        stage.addActor(ui_overlay);
         stage.addActor(p1_health_bar);
         stage.addActor(p2_health_bar);
         // Add fighters
@@ -83,17 +90,23 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
         for(int i = 0; i < touchInputUI.getButtons().size(); i++) {
             stage.addActor(touchInputUI.getButtons().get(i));
         }
+
+        Table pf_table = pf.getTable();
+        pf_table.setPosition(100, stage.getHeight() / 2.0f + 45);
+        stage.addActor(pf_table);
     }
 
     @Override
     public void render(float delta) {
+        if(Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            if(pf != null) {
+                System.out.println("show performance monitor");
+                pf.toggleView();
+            }
+        }
         now = System.nanoTime();
         if(client != null) {
-            try {
-                client.doPoll(Math.max(0, next - now - 1));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            client.doPoll(Math.max(0, next - now - 1));
         }
 
         if(now >= next) {
@@ -103,6 +116,7 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
     }
 
     private void initMatch() {
+        pf = new PerformanceMonitor();
         background = new TextureActor(Gdx.files.internal("sample_background.png"));
         ui_overlay = new TextureActor(Gdx.files.internal("match_ui_overlay.png"));
         TextureAtlas atlas = new TextureAtlas(Gdx.files.internal("ui_elements.atlas"));
@@ -123,9 +137,9 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
         int input = touchInputUI.getInput();
         int[] inputs;
         if(!trainingMode) {
-            boolean result;
+            GGPOErrorCode result;
             result = client.addLocalInput(input);
-            if (result) {
+            if (GGPOErrorCode.GGPOSucceeded(result)) {
                 inputs = client.syncInput();
                 if (inputs != null) {
                     advanceFrame(delta, inputs);
@@ -163,17 +177,15 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
             ngs.periodic = ngs.now;
         }
         if(!trainingMode) {
-            try {
-                client.incrementFrame();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            client.incrementFrame();
+            pf.update(client);
         }
+
     }
 
     @Override
     public boolean beginGame(String name) {
-        return true;
+        return false;
     }
 
     @Override
@@ -195,13 +207,12 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
         try {
             ObjectInputStream is = new ObjectInputStream(in);
             gs = (GameState)is.readObject();
-            in.close();
+            gs.loadGameState();
             return true;
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-        return true;
-    }
+        return true;    }
 
     @Override
     public boolean logGameState(String filename, String buffer) {
@@ -222,16 +233,18 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
 
     @Override
     public boolean onEvent(GgpoEvent event) {
-        switch(event.getCode()){
-            case GGPO_EVENTCODE_CONNECTED_TO_SERVER:
-                ngs.setConnectState(event.connected.playerHandle, NonGameState.PlayerConnectState.SYNCHRONIZING);
-                break;
-            case GGPO_EVENTCODE_TIMESYNC:
-                try {
-                    Thread.sleep((long) event.timeSync.frames_ahead * (1000/60));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        if (event.getCode() == GGPOEventCode.GGPO_EVENTCODE_CONNECTED_TO_SERVER) {
+            ngs.setConnectState(event.connected.playerHandle, NonGameState.PlayerConnectState.SYNCHRONIZING);
+        }
+
+        if(event.getCode() == GGPOEventCode.GGPO_EVENTCODE_TIMESYNC) {
+            try {
+                System.out.println("try to sleep for: " +
+                    (1000000000L * event.timeSync.frames_ahead / 60000000) + " ms");
+                Thread.sleep((1000000000L * event.timeSync.frames_ahead / 60000000L));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         return false;
     }

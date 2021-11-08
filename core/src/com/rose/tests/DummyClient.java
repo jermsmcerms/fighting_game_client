@@ -2,6 +2,7 @@ package com.rose.tests;
 
 import com.rose.ggpo.GGPOErrorCode;
 import com.rose.ggpo.GGPOEventCode;
+import com.rose.ggpo.GGPONetworkStatus;
 import com.rose.ggpo.GameInput;
 import com.rose.ggpo.GgpoEvent;
 import com.rose.ggpo.Poll;
@@ -158,7 +159,6 @@ public class DummyClient extends Udp.Callbacks {
                     if(!local_connect_status[1].disconnected) {
                         int current_frame = local_connect_status[1].last_frame;
                         int new_remote = event.input.input.getFrame();
-                        System.out.println("adding remote input");
                         sync.addRemoteInput(1, event.input.input);
                         local_connect_status[1].last_frame =
                             event.input.input.getFrame();
@@ -187,5 +187,9 @@ public class DummyClient extends Udp.Callbacks {
 
     public int[] syncInput() {
         return sync.syncInputs();
+    }
+
+    public GGPONetworkStatus getNetworkStats() {
+        return server_endpoint.getNetworkStats();
     }
 }

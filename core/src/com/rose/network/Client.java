@@ -1,9 +1,14 @@
 package com.rose.network;
 
+import com.rose.ggpo.GGPOErrorCode;
+import com.rose.ggpo.GGPOEventCode;
+import com.rose.ggpo.GGPONetworkStatus;
 import com.rose.ggpo.GameInput;
+import com.rose.ggpo.GgpoEvent;
 import com.rose.ggpo.Poll;
 import com.rose.ggpo.Sync;
 import com.rose.screens.ApplicationScreen;
+import com.rose.tests.SendInputTest;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -11,211 +16,205 @@ import java.nio.ByteBuffer;
 
 public class Client extends Udp.Callbacks {
     private static final String SERVER_IP = "192.168.80.194";
-    private static final int RECOMMENDATION_INTERVAL = 240;
     private static final int PORT_NUM = 1234;
-    private final ByteBuffer buffer;
-    private final long disconnect_timeout = 30000000000L;
-    private final long disconnect_notify_start = 10000000000L;
-    public UdpProto server_end_point;
-    public UdpProto[] endpoints;
-    private ApplicationScreen callbacks;
-    private boolean synchronizing;
-    private boolean allConnected;
-    private int playerNumber;
-    private final Sync sync;
-    private int sequence = -1;
-    private Udp udp;
+    private static final int RECOMMENDATION_INTERVAL = 240000000;
     private Poll poll;
+    private UdpProto server_endpoint;
+    private Sync sync;
+    private boolean synchronizing;
+    private UdpMsg.ConnectStatus[] local_connect_status;
+    private boolean connecting;
     private int next_recommended_sleep;
-    private UdpMsg.ConnectStatus local_connect_status;
-    private UdpMsg.ConnectStatus remote_connect_status;
+    private ApplicationScreen callbacks;
 
-    public Client() throws IOException {
-        buffer = ByteBuffer.allocate(32);
+    public Client() {
+        try {
+            init();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public Client(ApplicationScreen callbacks) throws IOException {
+        this.callbacks = callbacks;
+        try {
+            init();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-        sync = new Sync();
-        synchronizing = true;
-        allConnected = false;
-        udp = new Udp(this);
+    private void init() throws IOException {
+        Udp udp = new Udp(this);
         poll = udp.getPoll();
-
-        server_end_point = new UdpProto(udp, poll, SERVER_IP,
-                PORT_NUM);
-
-        local_connect_status = new UdpMsg.ConnectStatus();
-        remote_connect_status = new UdpMsg.ConnectStatus();
-        endpoints = new UdpProto[2];
-    }
-
-    public void connect() {
-        if(server_end_point != null) {
-            server_end_point.sendConnectRequest();
+        server_endpoint = new UdpProto(udp, poll, SERVER_IP, PORT_NUM);
+        sync = new Sync();
+        sync.setCallbacks(this.callbacks);
+        sync.setFrameDelay(0, 2);
+        local_connect_status = new UdpMsg.ConnectStatus[2];
+        for(int i = 0; i < local_connect_status.length; i++) {
+            local_connect_status[i] = new UdpMsg.ConnectStatus();
+            local_connect_status[i].last_frame = -1;
+            local_connect_status[i].disconnected = false;
         }
+        connecting = true;
     }
 
-    public ConnectState getServerConnectState() {
-        if(playerNumber <= 0 || endpoints[playerNumber - 1] == null) {
-            return server_end_point.getConnectState();
-        }
-
-        if(endpoints[playerNumber - 1] != null) {
-            return endpoints[playerNumber - 1].getConnectState();
-        }
-
-        return ConnectState.Invalid;
+    public void incrementFrame() {
+        doPoll(0);
+        sync.incrementFrame();
     }
 
-    public UdpProto[] getEndpoints() {
-        return endpoints;
-    }
-
-    public int getPlayerNumber() {
-        if(server_end_point != null) {
-            return server_end_point.getPlayerNumber();
-        }
-        return 0;
-    }
-
-    public void doPoll(long timeout) throws IOException {
+    public void doPoll(long timeout) {
         if(!sync.isInRollback()) {
-            if(poll != null) { poll.pump(0); }
+            poll.pump(0);
+            processUdpProtocolEvents();
+            if (!connecting && !synchronizing) {
+                sync.checkSimulation(0);
+                int current_frame = sync.frame_count;
+                server_endpoint.setLocalFrameNumber(current_frame);
 
-            pollUdpProtocolEvents();
+                int total_min_confirmed = poll2players(current_frame);
+                if (total_min_confirmed >= 0) {
+                    assert (total_min_confirmed != Integer.MAX_VALUE);
+                    sync.setLastConfirmedFrame(total_min_confirmed);
+                }
 
-//            if(server_end_point.getCanStart()) {
-//                int current_frame = sync.frame_count;
-//                server_end_point.setLocalFrameNumber(current_frame);
-//                sync.checkSimulation(timeout);
-//                int total_min_confirmed = poll2Players();
-//                if(total_min_confirmed >= 0) {
-//                    sync.setLastConfirmedFrame(total_min_confirmed);
-//                }
-//
-//                // TODO: send time sync notifications if its proper to do so.
-//                if(current_frame > next_recommended_sleep) {
-//                    int recommend_frame_delay = server_end_point.recommendFrameDelay();
-//                    int interval = Math.max(0, recommend_frame_delay);
-//                    if(interval > 0) {
-//                        GgpoEvent event = new GgpoEvent(GGPOEventCode.GGPO_EVENTCODE_TIMESYNC);
-//                        event.timeSync.frames_ahead = interval;
-//                        callbacks.onEvent(event);
-//                        next_recommended_sleep = current_frame + RECOMMENDATION_INTERVAL;
-//                    }
-//                }
-//            }
-        }
-    }
+                if (current_frame > next_recommended_sleep) {
+                    int interval =
+                        Math.max(0, server_endpoint.recommendFrameDelay());
 
-    private void pollUdpProtocolEvents() {
-        for(int i = 0; i < endpoints.length; i++) {
-            if(endpoints[i] != null) {
-                UdpProtocolEvent event = endpoints[i].getEvent();
-                while (event != null) {
-
-                    processPeerEvent(event);
-                    event = server_end_point.getEvent();
+                    if (interval > 0) {
+                        GgpoEvent event = new GgpoEvent(GGPOEventCode.GGPO_EVENTCODE_TIMESYNC);
+                        event.timeSync.frames_ahead = interval;
+                        callbacks.onEvent(event);
+                        next_recommended_sleep =
+                            current_frame + RECOMMENDATION_INTERVAL;
+                    }
                 }
             }
         }
     }
 
-    private void processPeerEvent(UdpProtocolEvent event) {
-        if (event.getEventType() == UdpProtocolEvent.Event.Input) {
-            if (!local_connect_status.disconnected) {
-                sync.addRemoteInput(1, event.input.input);
-                if (remote_connect_status == null) {
-                    remote_connect_status = new UdpMsg.ConnectStatus();
-                }
-
-                remote_connect_status.last_frame =
-                        event.input.input.getFrame();
-            }
-        }
-    }
-
-    public boolean addLocalInput(int input) {
-        GameInput gameInput;
-        if(sync.isInRollback()) {
-            return false;
-        }
-
-        if(!server_end_point.getCanStart()) {
-            return false;
-        }
-
-        gameInput = new GameInput(-1, input);
-//        if(!sync.addLocalInput(0, gameInput)) {
-//            return false;
-//        }
-        gameInput = sync.input_queues.get(0).getCurrentInput();
-        if(gameInput.getFrame() != GameInput.NULL_FRAME) {
-            local_connect_status.last_frame = gameInput.getFrame();
-            local_connect_status.disconnected = false;
-//            server_end_point.sendInput(gameInput, local_connect_status[0]);
-        }
-        return true;
-    }
-
-    public boolean getAllConnected() {
-        return server_end_point.getCanStart();
-    }
-
-    private int poll2Players() {
+    private int poll2players(int current_frame) {
         int total_min_confirmed = Integer.MAX_VALUE;
-//        if(!local_connect_status.disconnected) {
-//            total_min_confirmed = local_connect_status.last_frame;
-//        }
-        if(server_end_point.getRemoteStatus() != null) {
-            remote_connect_status =
-                new UdpMsg.ConnectStatus(
-                    server_end_point.getRemoteStatus().disconnected,
-                    server_end_point.getRemoteStatus().last_frame);
-
-            total_min_confirmed = Math.min(
-                    remote_connect_status.last_frame,
-                    total_min_confirmed);
-            return total_min_confirmed;
-        }
-        return -1;
-    }
-
-    public void onMsg(SocketAddress from, UdpMsg msg) {
-        if(playerNumber <= 0 && msg.hdr.type == UdpMsg.MsgType.ConnectReply.ordinal()) {
-            server_end_point.onMsg(msg);
-            playerNumber = server_end_point.getPlayerNumber();
-        } else if(playerNumber > 0 && endpoints[playerNumber - 1] == null) {
-            synchronizing = true;
-            server_end_point.onMsg(msg);
-            server_end_point.synchronize();
-            endpoints[playerNumber - 1] = server_end_point;
-        } else {
-            for (UdpProto endpoint : endpoints) {
-                if (endpoint != null) {
-                    endpoint.onMsg(msg);
-                    return;
-                }
+        for(int i = 0; i < local_connect_status.length; i++) {
+            // TODO: Get peer connect status and disconnect if needed.
+            if(!local_connect_status[i].disconnected) {
+                total_min_confirmed =
+                    Math.min(local_connect_status[i].last_frame,
+                        total_min_confirmed);
             }
         }
+        return total_min_confirmed;
+    }
+
+    public GGPOErrorCode addLocalInput(int input) {
+        if(sync.isInRollback()) {
+            System.out.println("in rollback");
+            return GGPOErrorCode.GGPO_ERRORCODE_IN_ROLLBACK;
+        }
+        if(synchronizing) {
+            System.out.println("synchronizing");
+
+            return GGPOErrorCode.GGPO_ERRORCODE_NOT_SYNCHRONIZED;
+        }
+
+        if(server_endpoint.getPlayerNumber() < 0 || server_endpoint.getPlayerNumber() > 2) {
+            System.out.println("invalid player");
+
+            return GGPOErrorCode.GGPO_ERRORCODE_INVALID_PLAYER_HANDLE;
+        }
+
+
+        if(!sync.addLocalInput(0, input)) {
+            System.out.println("Prediction threshold reached");
+            return GGPOErrorCode.GGPO_ERRORCODE_PREDICTION_THRESHOLD;
+        }
+
+        GameInput gameInput = new GameInput(sync.frame_count, input);
+        if(gameInput.getFrame() != GameInput.NULL_FRAME) {
+            local_connect_status[0].last_frame = gameInput.getFrame();
+            server_endpoint.sendInput(gameInput, local_connect_status[0]); // <-- TODO: Remove when passing local connect status is necessary
+        }
+
+        return GGPOErrorCode.GGPO_OK;
+    }
+
+    public ConnectState getCurrentStatus() {
+        return server_endpoint.getConnectState();
+    }
+    @Override
+    public void onMsg(SocketAddress from, UdpMsg msg) {
+        server_endpoint.onMsg(msg);
+    }
+
+    public void processUdpProtocolEvents() {
+        UdpProtocolEvent event = server_endpoint.getEvent();
+        GgpoEvent ggpoEvent;
+        while(event != null) {
+            switch(event.getEventType()) {
+                case Connected:
+                    if( server_endpoint.getConnectState() == ConnectState.Connected &&
+                        server_endpoint.getConnectState() != ConnectState.Syncing) {
+                        server_endpoint.synchronize();
+                        synchronizing = true;
+                        connecting = false;
+                    }
+                    break;
+                case Synchronized:
+                    ggpoEvent = new GgpoEvent(GGPOEventCode.GGPO_EVENTCODE_SYNCHRONIZED_WITH_SERVER);
+                    ggpoEvent.synced.player_handle = server_endpoint.getPlayerNumber();
+                    checkInitialSync();
+                    break;
+                case Input:
+                    // TODO: Don't send ggpo event. Add input to the sync's
+                    //       input queue if now is a good time.
+                    if(!local_connect_status[1].disconnected) {
+                        int current_frame = local_connect_status[1].last_frame;
+                        int new_remote = event.input.input.getFrame();
+                        sync.addRemoteInput(1, event.input.input);
+                        local_connect_status[1].last_frame =
+                            event.input.input.getFrame();
+                    }
+                    break;
+            }
+
+            // TODO: process the event now.
+            event = server_endpoint.getEvent();
+        }
+    }
+
+    private void checkInitialSync() {
+        if(synchronizing) {
+            if(server_endpoint.isInitialized() &&
+                !server_endpoint.isSynchronized() &&
+                !local_connect_status[1].disconnected) {
+                return;
+            }
+        }
+
+//        GgpoEvent event = new GgpoEvent(GGPOEventCode.GGPO_EVENTCODE_RUNNING);
+        // TODO: handle first running event
+        synchronizing = false;
     }
 
     public int[] syncInput() {
-        // TODO: return null if synchronizing
         return sync.syncInputs();
     }
 
-    public void incrementFrame() throws IOException {
-//        sync.incrementFrame();
-        doPoll(0);
+    public GGPONetworkStatus getNetworkStats() {
+        return server_endpoint.getNetworkStats();
     }
 
-    public void setCallbacks(ApplicationScreen screen) {
-        this.callbacks = screen;
-        sync.setCallbacks(callbacks);
+    public void setCallbacks(ApplicationScreen applicationScreen) {
+        callbacks = applicationScreen;
+        sync.setCallbacks(applicationScreen);
     }
 
-    public void setPlayerNumber() {
-        if(server_end_point != null) {
-            playerNumber = server_end_point.getPlayerNumber();
+    public int getPlayerNumber() {
+        if(server_endpoint.getPlayerNumber() == 1) {
+            return 2;
         }
+        return 1;
     }
 }

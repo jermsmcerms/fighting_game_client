@@ -2,6 +2,8 @@ package com.rose.tests;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.rose.actors.Fighter;
 import com.rose.actors.Ken;
 import com.rose.actors.Ryu;
@@ -31,11 +33,17 @@ public class SendInputTest implements GgpoCallbacks {
     private GameState gs;
     private final NonGameState ngs;
     private String checksum;
+    private Stage stage;
 
-    public SendInputTest() {
+    public SendInputTest(Stage stage) {
+        this.stage = stage;
+        stage.clear();
+        Gdx.input.setInputProcessor(stage);
         Fighter[] fighters = new Fighter[2];
         fighters[0] = new Ryu(new Vector2(250 / 2f - 32 / 2f, 20), true);
         fighters[1] = new Ken(new Vector2(500 / 2f - 32 / 2f, 20), false);
+        stage.addActor(fighters[0]);
+        stage.addActor(fighters[1]);
         gs = new GameState(fighters, 1, true);
         ngs = new NonGameState();
 
@@ -64,6 +72,7 @@ public class SendInputTest implements GgpoCallbacks {
     }
 
     public void runFrame() {
+        ScreenUtils.clear(0.2f, 0.2f, 0.2f, 1);
         if(dc.getCurrentStatus() == ConnectState.Running) {
             if(frame_timer < 5) {
                 input = getRandomInput();
@@ -77,6 +86,7 @@ public class SendInputTest implements GgpoCallbacks {
 
             current_frame++;
             frame_timer++;
+            stage.draw();
         }
 
     }

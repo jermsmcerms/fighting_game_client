@@ -9,10 +9,12 @@ import com.rose.ggpo.GGPOErrorCode;
 import com.rose.ggpo.GGPOEventCode;
 import com.rose.ggpo.GgpoCallbacks;
 import com.rose.ggpo.GgpoEvent;
+import com.rose.main.Rose;
 import com.rose.management.GameState;
 import com.rose.management.NonGameState;
 import com.rose.management.SaveGameState;
 import com.rose.management.Utilities;
+import com.rose.screens.ScreenBase;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -26,7 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
     connection testing, network syncing, time syncing, etc. All tests are ran one at a time.
     The pass/fail is shown at the end of each test.
  */
-public class TestGame implements GgpoCallbacks {
+public class TestGame extends ScreenBase implements GgpoCallbacks {
     private static final int NUM_PLAYERS = 2;
     private static final int MAX_TEST_FRAMES = 100; // 1 frame at 60fps
     private static final int MAX_INPUT_QUEUE_TEST_FRAMES = 64;
@@ -35,14 +37,15 @@ public class TestGame implements GgpoCallbacks {
     private final NonGameState ngs;
     private InputQueueTest queueTest;
     private SyncTest syncTest;
-    private NetworkSyncTest nst;
-    private ConnectTest connectTest;
+//    private NetworkSyncTest nst;
+//    private ConnectTest connectTest;
     private SendInputTest sendInputTest;
     private String checksum;
     private int currentFrame;
-
-    public TestGame() {
-        Fighter[] fighters = new Fighter[NUM_PLAYERS];
+    Fighter[] fighters;
+    public TestGame(Rose rose) {
+        super(rose);
+        fighters = new Fighter[NUM_PLAYERS];
         fighters[0] = new Ryu(new Vector2(250 / 2f - 32 / 2f, 20), true);
         fighters[1] = new Ken(new Vector2(500 / 2f - 32 / 2f, 20), false);
         gs = new GameState(fighters, 1, true);
@@ -55,7 +58,7 @@ public class TestGame implements GgpoCallbacks {
 //        connectTest.runConnectTest();
 //        nst = new NetworkSyncTest(this);
 //        nst.runSyncTest();
-        sendInputTest = new SendInputTest();
+        sendInputTest = new SendInputTest(stage);
         sendInputTest.runTest(MAX_SEND_INPUT_FRAMES);
     }
 

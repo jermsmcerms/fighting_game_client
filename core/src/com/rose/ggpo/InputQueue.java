@@ -94,12 +94,9 @@ public class InputQueue {
     }
 
     private int advanceQueueHead(int frame) {
-        System.out.println("advancing queue head to frame " + frame);
         int expected_frame = first_frame ? 0 : inputs[getPreviousFrame(head)].getFrame() + 1;
         frame += frame_delay;
-        System.out.println("frame delay " + frame_delay);
         if(expected_frame > frame) {
-            System.out.println("expected frame: " + expected_frame + " frame: " + frame);
             return GameInput.NULL_FRAME;
         }
 

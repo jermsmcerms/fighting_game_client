@@ -14,14 +14,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class UdpProto implements IPollSink {
     /* Intervals are measured in nano seconds. 1ms = 1,000,000 ns */
-    private static final long SYNC_RETRY_INTERVAL       = 2000000000L;
-    private static final long CONNECT_RETRY_INTERVAL    = 2000000000L; // 2000 ms = 2 billion ns
-    private static final int SYNC_FIRST_RETRY_INTERVAL  = 500000000;
+    private static final long SYNC_RETRY_INTERVAL       = 2000;
+    private static final long CONNECT_RETRY_INTERVAL    = 2000; // 2000 ms = 2 billion ns
+    private static final int SYNC_FIRST_RETRY_INTERVAL  = 500;
     private static final int NUM_SYNC_PACKETS = 5;
     private static final int MAX_SEQ_DISTANCE = 32768;
-    private static final long RUNNING_RETRY_INTERVAL    = 200000000L;
-    private static final long QUALITY_REPORT_INTERVAL   = 100000000L;
-    private static final long NETWORK_STATS_INTERVAL    = 100000000L;
+    private static final long RUNNING_RETRY_INTERVAL    = 2000;
+    private static final long QUALITY_REPORT_INTERVAL   = 1000;
+    private static final long NETWORK_STATS_INTERVAL    = 1000;
     private static final int UDP_HEADER_SIZE = 28;
     private int next_send_seq;
     private final RingBuffer<GameInput> pending_output;
@@ -112,18 +112,18 @@ public class UdpProto implements IPollSink {
 
     public void sendMsg(UdpMsg msg) {
         packets_sent++;
-        last_send_time = System.nanoTime();
+        last_send_time = System.currentTimeMillis();
         bytes_sent += msg.getPacketSize();
         msg.hdr.sequenceNumber = next_send_seq++;
         msg.hdr.magicNumber = magic_number;
-        send_queue.push(new QueueEntry(System.nanoTime(), server_addr, msg));
+        send_queue.push(new QueueEntry(System.currentTimeMillis(), server_addr, msg));
         pumpSendQueue();
     }
 
     @Override
     public boolean onLoopPoll(Object o) {
         if(udp == null) { return false; }
-        long now = System.nanoTime();
+        long now = System.currentTimeMillis();
         long next_interval;
         pumpSendQueue();
         switch(current_state) {
@@ -159,7 +159,7 @@ public class UdpProto implements IPollSink {
                     state.running.last_quality_report_time +
                         QUALITY_REPORT_INTERVAL < now) {
                     UdpMsg msg = new UdpMsg(UdpMsg.MsgType.QualityReport);
-                    msg.payload.qualrpt.ping = System.nanoTime();
+                    msg.payload.qualrpt.ping = System.currentTimeMillis();
                     msg.payload.qualrpt.frame_advantage = local_frame_advantage;
                     sendMsg(msg);
                     state.running.last_quality_report_time = now;
@@ -179,24 +179,30 @@ public class UdpProto implements IPollSink {
     }
 
     private void updateNetworkStats() {
-        long now = System.nanoTime();
+        long now = System.currentTimeMillis();
         if(stats_start_time == 0) {
-            stats_start_time = now + 1;
+            stats_start_time = now;
         }
 
-        int total_bytes_sent = bytes_sent + (UDP_HEADER_SIZE * packets_sent);
-        float seconds = (float)((now - stats_start_time) / 100000000.0f);
-        float bps = total_bytes_sent / seconds;
-        float udp_overhead = (float)(100.0 * (UDP_HEADER_SIZE * packets_sent) / bytes_sent);
-        kbps_sent = (int)(bps / 1024);
+        if(now - stats_start_time != 0) {
+            int total_bytes_sent = bytes_sent + (UDP_HEADER_SIZE * packets_sent);
+            float seconds = (float) ((now - stats_start_time) / 1000.0f);
+            float bps = total_bytes_sent / seconds;
+            float udp_overhead = (float) (100.0 * (UDP_HEADER_SIZE * packets_sent) / bytes_sent);
+            kbps_sent = (int) (bps / 1024);
+            float pps = (float) (packets_sent * 1000L / (now - stats_start_time));
+            float total_kb_sent = total_bytes_sent / 1024.0f;
 
-        System.out.printf("Network Stats -- Bandwidth: %d KBps   Packets Sent: %5d (%.2f pps)   " +
-            "KB Sent: %.2f    UDP Overhead: %.2f %%.\n",
-            kbps_sent,
-            packets_sent,
-            (float)(packets_sent * 1000000000L / (now - stats_start_time)),
-            total_bytes_sent / 1024.0,
-            udp_overhead);
+            System.out.printf("Network Stats -- Bandwidth: %d KBps   Packets Sent: %5d (%.2f pps)   " +
+                    "KB Sent: %.2f    UDP Overhead: %.2f %%.\n",
+                kbps_sent,
+                packets_sent,
+                pps,
+                total_kb_sent,
+                udp_overhead);
+        } else {
+            System.out.println("cannot calculate network stats at this time.");
+        }
     }
 
 
@@ -372,7 +378,7 @@ public class UdpProto implements IPollSink {
                     UdpProtocolEvent event = new UdpProtocolEvent(UdpProtocolEvent.Event.Input);
                     event.input.input = new GameInput(last_received_input.getFrame(), last_received_input.getInput());
                     event_queue.push(event);
-                    state.running.last_input_packed_recv_time = System.nanoTime();
+                    state.running.last_input_packed_recv_time = System.currentTimeMillis();
                 }
 
                 current_frame++;
@@ -395,7 +401,7 @@ public class UdpProto implements IPollSink {
     }
 
     private boolean onQualityReply(UdpMsg msg) {
-        round_trip_time = System.nanoTime() - msg.payload.qualrep.pong;
+        round_trip_time = System.currentTimeMillis() - msg.payload.qualrep.pong;
         return true;
     }
 
@@ -480,11 +486,11 @@ public class UdpProto implements IPollSink {
     }
 
     public void setLocalFrameNumber(int local_frame) {
-        System.out.println("last received input frame: " + last_received_input.getFrame() +
-            " round trip time: " + (round_trip_time * 60 / 100000000) + " ms");
-        long remote_frame = last_received_input.getFrame() + (round_trip_time * 60 / 100000000);
+//        System.out.println("last received input frame: " + last_received_input.getFrame() +
+//            " round trip time: " + (round_trip_time * 60 / 1000) + " ms");
+        long remote_frame = last_received_input.getFrame() + (round_trip_time * 60 / 1000);
         local_frame_advantage = (int)(remote_frame - local_frame);
-        System.out.println("remote frame: " + remote_frame + " local frame advantage: " + local_frame_advantage);
+//        System.out.println("remote frame: " + remote_frame + " local frame advantage: " + local_frame_advantage);
     }
 
     public int recommendFrameDelay() {

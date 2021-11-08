@@ -66,7 +66,7 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
         this.client.setCallbacks(this);
         playerNumber = client.getPlayerNumber();
         trainingMode = false;
-        now = next = System.nanoTime();
+        now = next = System.currentTimeMillis();
         initMatch();
     }
 
@@ -104,14 +104,14 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
                 pf.toggleView();
             }
         }
-        now = System.nanoTime();
+        now = System.currentTimeMillis();
         if(client != null) {
             client.doPoll(Math.max(0, next - now - 1));
         }
 
         if(now >= next) {
             runFrame(delta);
-            now = next + (1000000000/60);
+            now = next + (1000/60);
         }
     }
 
@@ -240,8 +240,8 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
         if(event.getCode() == GGPOEventCode.GGPO_EVENTCODE_TIMESYNC) {
             try {
                 System.out.println("try to sleep for: " +
-                    (1000000000L * event.timeSync.frames_ahead / 60000000) + " ms");
-                Thread.sleep((1000000000L * event.timeSync.frames_ahead / 60000000L));
+                    (1000L * event.timeSync.frames_ahead / 60) + " ms");
+                Thread.sleep((1000L * event.timeSync.frames_ahead / 60));
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
 public class Client extends Udp.Callbacks {
     private static final String SERVER_IP = "192.168.80.194";
     private static final int PORT_NUM = 1234;
-    private static final int RECOMMENDATION_INTERVAL = 240000000;
+    private static final int RECOMMENDATION_INTERVAL = 240;
     private Poll poll;
     private UdpProto server_endpoint;
     private Sync sync;

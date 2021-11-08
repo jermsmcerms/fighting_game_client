@@ -25,16 +25,16 @@
 //        try {
 //            client = new Client();
 //            long now, next;
-//            next = System.nanoTime();
+//            next = System.currentTimeMS();
 //
 //            System.out.println("Begin connect test now...");
 //            client.connect();
 //            while (!connect_reply_received) {
-//                now = System.nanoTime();
+//                now = System.currentTimeMillis();
 //                doPoll(Math.max(0, next - now - 1));
 //                if (now >= next) {
 //                    callbacks.runConnectRequestFrame();
-//                    next = now + (1000000000L / 60);
+//                    next = now + (1000 / 60);
 //                    System.out.println("connect state " + client.getServerConnectState());
 //                    connect_reply_received = client.getServerConnectState() == ConnectState.Connected;
 //                }

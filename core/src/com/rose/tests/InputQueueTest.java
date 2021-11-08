@@ -84,15 +84,15 @@ public class InputQueueTest {
 
     public void runTest(int maxTestFrames) {
         long now, next;
-        next = System.nanoTime();
+        next = System.currentTimeMillis();
 
         System.out.println("Begin input queue test now...");
         doPoll();
         while(current_frame < maxTestFrames) {
-            now = System.nanoTime();
+            now = System.currentTimeMillis();
             if(now >= next) {
                 runFrame();
-                next = now + (1000000000L / 60);
+                next = now + (1000 / 60);
                 current_frame++;
             }
         }

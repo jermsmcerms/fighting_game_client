@@ -74,13 +74,13 @@ public class PerformanceMonitor {
 
     public void update(Client client) {
         GGPONetworkStatus stats = client.getNetworkStats();
-        long now = System.nanoTime();
+        long now = System.currentTimeMillis();
 
-        if (now > last_text_update_time + 500000000L) {
+        if (now > last_text_update_time + 5000) {
             // network latency
-            net_perf_values[0].setText(Long.toString(stats.network.ping / 1000000L) + " ms");
+            net_perf_values[0].setText(Double.toString(stats.network.ping) + " ms");
             // frame latency
-            String frameLag = stats.network.ping > 0 ? Double.toString(stats.network.ping * 60.0 / 1000000000L) : "0";
+            String frameLag = stats.network.ping > 0 ? Double.toString(stats.network.ping * 60.0 / 1000) : "0";
             net_perf_values[1].setText(frameLag + " frames");
             // bandwidth
             DecimalFormat df = new DecimalFormat("#.##");

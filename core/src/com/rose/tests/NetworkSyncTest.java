@@ -26,16 +26,16 @@
 //        try {
 //            client = new Client();
 //            long now, next;
-//            next = System.nanoTime();
+//            next = System.currentTimeMillis();
 //
 //            System.out.println("Begin network sync test now...");
 //            client.connect();
 //            while (true) {
-//                now = System.nanoTime();
+//                now = System.currentTimeMillis();
 //                doPoll(Math.max(0, next - now - 1));
 //                if (now >= next) {
 //                    callbacks.runConnectRequestFrame();
-//                    next = now + (1000000000L / 60);
+//                    next = now + (1000 / 60);
 //                    connect_reply_received = client.getServerConnectState() == ConnectState.Running;
 //                }
 //            }

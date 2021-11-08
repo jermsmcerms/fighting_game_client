@@ -58,13 +58,13 @@ public class SendInputTest implements GgpoCallbacks {
 
     public void runTest(int max_frames) {
         long now, next;
-        next = System.nanoTime();
+        next = System.currentTimeMillis();
         while (current_frame < max_frames) {
-            now = System.nanoTime();
+            now = System.currentTimeMillis();
             dc.doPoll();
             if (now >= next) {
                 runFrame();
-                next = now + (1000000000L / 60);
+                next = now + (1000 / 60);
             }
         }
         System.out.println("test completed. Exiting.");
@@ -167,8 +167,8 @@ public class SendInputTest implements GgpoCallbacks {
         if(event.getCode() == GGPOEventCode.GGPO_EVENTCODE_TIMESYNC) {
             try {
                 System.out.println("try to sleep for: " +
-                        (1000000000L * event.timeSync.frames_ahead / 60000000) + " ms");
-                Thread.sleep((1000000000L * event.timeSync.frames_ahead / 60000000L));
+                        (1000 * event.timeSync.frames_ahead / 60) + " ms");
+                Thread.sleep((1000 * event.timeSync.frames_ahead / 60L));
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

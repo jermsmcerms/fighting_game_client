@@ -51,15 +51,15 @@ public class SyncTest {
     public void runSyncTest(int maxTestFrames) {
         long now, next;
         int currentFrame = 0;
-        next = System.nanoTime();
+        next = System.currentTimeMillis();
 
         System.out.println("Begin sync test now...");
         while(currentFrame <= maxTestFrames) {
-            now = System.nanoTime();
+            now = System.currentTimeMillis();
             doPoll();
             if(now >= next) {
                 callbacks.runSyncFrame();
-                next = now + (1000000000L / 60);
+                next = now + (1000 / 60);
                 currentFrame++;
             }
         }

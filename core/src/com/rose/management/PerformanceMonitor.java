@@ -76,7 +76,7 @@ public class PerformanceMonitor {
         GGPONetworkStatus stats = client.getNetworkStats();
         long now = System.currentTimeMillis();
 
-        if (now > last_text_update_time + 5000) {
+        if (now > last_text_update_time + 500) {
             // network latency
             net_perf_values[0].setText(Double.toString(stats.network.ping) + " ms");
             // frame latency
@@ -84,14 +84,14 @@ public class PerformanceMonitor {
             net_perf_values[1].setText(frameLag + " frames");
             // bandwidth
             DecimalFormat df = new DecimalFormat("#.##");
-            net_perf_values[2].setText(df.format((double)(stats.network.kbps_sent / 8.0)) + " kilobytes/sec");
+            net_perf_values[2].setText(df.format(stats.network.kbps_sent / 8.0) + " kilobytes/sec");
             // packet loss rate
             net_perf_values[3].setText("0");
 
             // local frames behind
-            sync_perf_values[0].setText(Integer.toString(stats.timesync.local_frames_behind) + " frames");
+            sync_perf_values[0].setText(stats.timesync.local_frames_behind + " frames");
             // remote frames behind
-            sync_perf_values[1].setText(Integer.toString(stats.timesync.remote_frames_behind) + " frames");
+            sync_perf_values[1].setText(stats.timesync.remote_frames_behind + " frames");
 
             last_text_update_time = now;
         }

@@ -239,9 +239,8 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
 
         if(event.getCode() == GGPOEventCode.GGPO_EVENTCODE_TIMESYNC) {
             try {
-                System.out.println("try to sleep for: " +
-                    (1000L * event.timeSync.frames_ahead / 60) + " ms");
-                Thread.sleep((1000L * event.timeSync.frames_ahead / 60));
+                System.out.println("sleep for " +  event.timeSync.frames_ahead  + " frames.");
+                Thread.sleep(1000L * event.timeSync.frames_ahead / 60);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

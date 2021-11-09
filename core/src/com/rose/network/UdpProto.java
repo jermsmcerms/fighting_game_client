@@ -192,16 +192,6 @@ public class UdpProto implements IPollSink {
             kbps_sent = (int) (bps / 1024);
             float pps = (float) (packets_sent * 1000L / (now - stats_start_time));
             float total_kb_sent = total_bytes_sent / 1024.0f;
-
-            System.out.printf("Network Stats -- Bandwidth: %d KBps   Packets Sent: %5d (%.2f pps)   " +
-                    "KB Sent: %.2f    UDP Overhead: %.2f %%.\n",
-                kbps_sent,
-                packets_sent,
-                pps,
-                total_kb_sent,
-                udp_overhead);
-        } else {
-            System.out.println("cannot calculate network stats at this time.");
         }
     }
 
@@ -401,12 +391,9 @@ public class UdpProto implements IPollSink {
     }
 
     private boolean onQualityReply(UdpMsg msg) {
-        round_trip_time = System.currentTimeMillis() - msg.payload.qualrep.pong;
+        long now = System.currentTimeMillis();
+        round_trip_time = now - msg.payload.qualrep.pong;
         return true;
-    }
-
-    public boolean getCanStart() {
-        return canStart;
     }
 
     public void sendInput(GameInput gameInput, UdpMsg.ConnectStatus local_connect_status) {
@@ -485,12 +472,21 @@ public class UdpProto implements IPollSink {
         return udp == null;
     }
 
+    int previous_frame;
     public void setLocalFrameNumber(int local_frame) {
-//        System.out.println("last received input frame: " + last_received_input.getFrame() +
-//            " round trip time: " + (round_trip_time * 60 / 1000) + " ms");
         long remote_frame = last_received_input.getFrame() + (round_trip_time * 60 / 1000);
         local_frame_advantage = (int)(remote_frame - local_frame);
-//        System.out.println("remote frame: " + remote_frame + " local frame advantage: " + local_frame_advantage);
+//        if(last_received_input.getFrame() != previous_frame) {
+//			previous_frame = last_received_input.getFrame();
+//			System.out.println(
+//				"last rec frame: " + last_received_input.getFrame() +
+//				" round trip time: " + round_trip_time +
+//				" rtt in frames: " + (round_trip_time * 60 / 1000) +
+//				" local frame: " + local_frame +
+//				" remote frame: " + remote_frame +
+//				" local frame advantage: " + local_frame_advantage
+//			);
+//		}
     }
 
     public int recommendFrameDelay() {

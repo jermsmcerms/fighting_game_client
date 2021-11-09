@@ -23,7 +23,7 @@ public class TimeSync {
         remote[input.getFrame() % remote.length] = radvantage;
     }
 
-    private static int count = 0;
+    private int count = 0;
 
     public int recommend_frame_wait_duration(boolean require_idle_input) {
         // Average our local and remote frame advantages
@@ -54,7 +54,7 @@ public class TimeSync {
         // sleep for.
         int sleep_frames = (int)(((radvantage - advantage) / 2) + 0.5);
 
-//        Log("iteration %d:  sleep frames is %d\n", count, sleep_frames);
+//        System.out.printf("iteration %d:  sleep frames is %d\n", count, sleep_frames);
 
         // Some things just aren't worth correcting for.  Make sure
         // the difference is relevant before proceeding.

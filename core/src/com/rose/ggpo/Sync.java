@@ -35,7 +35,7 @@ public class Sync {
 
     public boolean addLocalInput(int index, int input) {
 //        int frames_behind = frame_count - last_confirmed_frame;
-        // Comment out if you want to test input queue
+////         Comment out if you want to test input queue
 //        if( frame_count >= max_prediction_frames &&
 //            frames_behind >= max_prediction_frames) {
 //            System.out.println("rejecting input from emulator: reached prediction barrier");
@@ -71,6 +71,7 @@ public class Sync {
     public void saveCurrentFrame() {
         SavedState.SavedFrame state = savedState.frames[savedState.head];
         state.frame = frame_count;
+        System.out.println("saving frame: " + state.frame);
         SaveGameState sgs = callbacks.saveGameState();
         state.cbuf = sgs.obj_data.length;
         state.buf = new byte[state.cbuf];
@@ -122,12 +123,7 @@ public class Sync {
                 break;
             }
         }
-        if(i == savedState.frames.length) {
-            System.out.println("requested frame not in library");
-            for(i = 0; i < savedState.frames.length; i++) {
-                System.out.println("saved frame: " + savedState.frames[i].frame);
-            }
-        }
+        assert(i < savedState.frames.length);
         return i;
     }
 

@@ -88,7 +88,7 @@ public class InputQueue {
                 first_incorrect_frame == GameInput.NULL_FRAME) {
                 prediction.setFrame(GameInput.NULL_FRAME);
             } else {
-                prediction.setFrame(prediction.getFrame() + 1);
+                prediction.incrementFrame();
             }
         }
     }
@@ -138,9 +138,7 @@ public class InputQueue {
 
         if(prediction.getFrame() == GameInput.NULL_FRAME) {
             int offset = requested_frame - inputs[tail].getFrame();
-            if(offset < length) {
-                System.out.println("no need to predict. Return inputs for frame: " +
-                        inputs[offset].getFrame());
+            if(offset >= 0 && offset < length) {
                 offset = (offset + tail) % INPUT_QUEUE_LENGTH;
                 return inputs[offset];
             }
@@ -150,9 +148,7 @@ public class InputQueue {
             } else if(last_added_frame == GameInput.NULL_FRAME) {
                 prediction.setInput(0);
             } else {
-                System.out.println("setting prediction to previous input " +
-                        inputs[getPreviousFrame(head)]);
-                prediction = inputs[getPreviousFrame(head)];
+                prediction = new GameInput(inputs[getPreviousFrame(head)].getFrame(), inputs[getPreviousFrame(head)].getInput());
             }
             prediction.incrementFrame();
         }

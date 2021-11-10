@@ -141,7 +141,7 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
             result = client.addLocalInput(input);
             if (GGPOErrorCode.GGPOSucceeded(result)) {
                 inputs = client.syncInput();
-                if (inputs != null) {
+                if (inputs[0] != -1 && inputs[1] != -1) {
                     advanceFrame(delta, inputs);
                 }
             }

@@ -23,15 +23,15 @@ import java.util.Optional;
 
 public class Fighter extends Actor implements Serializable {
     public static final long serialVersionUID = 43L;
+    transient protected TextureAtlas sprite_sheet;
+    transient protected Map<AnimationState, SpriteAnimation<TextureAtlas.AtlasRegion>> animation_map;
+    transient SpriteAnimation<TextureAtlas.AtlasRegion> animation;
     protected ArrayList<Boxes> ground_boxes;
     protected boolean facingRight;
     protected boolean showBoxes;
     protected Vector2 anim_anchor;
     protected Vector2 anchor_point;
-    transient protected TextureAtlas sprite_sheet;
     protected  AnimationState anim_state;
-    transient protected Map<AnimationState, SpriteAnimation<TextureAtlas.AtlasRegion>> animation_map;
-    transient SpriteAnimation<TextureAtlas.AtlasRegion> animation;
     protected float anim_state_time;
     protected float direction;
     protected boolean attacking;
@@ -87,6 +87,10 @@ public class Fighter extends Actor implements Serializable {
                 }
             }
         }
+    }
+
+    public void initTransientValues() {
+        animation_map = new HashMap<>(AnimationState.length());
     }
 
     public boolean isAttacking() {
@@ -294,5 +298,13 @@ public class Fighter extends Actor implements Serializable {
 
     public int getComboCounter() {
         return combo_counter;
+    }
+
+    public Vector2 getAnchor() {
+        return anchor_point;
+    }
+
+    public AnimationState getAnimationState() {
+        return anim_state;
     }
 }

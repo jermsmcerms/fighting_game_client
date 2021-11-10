@@ -134,7 +134,6 @@ public class SendInputTest implements GgpoCallbacks {
         try {
             ObjectInputStream is = new ObjectInputStream(in);
             gs = (GameState)is.readObject();
-            gs.loadGameState();
             return true;
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();

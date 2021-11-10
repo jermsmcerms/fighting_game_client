@@ -93,6 +93,14 @@ public class Ken extends Fighter {
         anim_state = AnimationState.IDLE;
     }
 
+    @Override
+    public void initTransientValues() {
+        super.initTransientValues();
+        sprite_sheet = new TextureAtlas(Gdx.files.internal("characters/ken/ken_sprite_sheet.atlas"));
+        defineAnimationLengths();
+        defineKeyFrames();
+    }
+
     /*
        Manual flip function which will be used as the basis for turning characters
        around when they switch sides.

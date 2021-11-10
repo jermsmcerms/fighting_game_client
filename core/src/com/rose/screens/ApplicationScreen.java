@@ -190,10 +190,12 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
 
     @Override
     public SaveGameState saveGameState() {
+        System.out.println("Saving game state:");
         byte[] data = gs.saveGameState();
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             this.checksum = Utilities.bytesToHex(md.digest(data));
+            System.out.println("Checksum: " + this.checksum);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -205,9 +207,17 @@ public class ApplicationScreen extends ScreenBase implements GgpoCallbacks {
     public boolean loadFrame(byte[] buffer, int length) {
         ByteArrayInputStream in = new ByteArrayInputStream(buffer);
         try {
+            stage.clear();
             ObjectInputStream is = new ObjectInputStream(in);
             gs = (GameState)is.readObject();
-            gs.loadGameState();
+            gs.printState();
+            Fighter[] fighters = gs.getFighters();
+            for(int i = 0; i < fighters.length; i++) {
+                fighters[i].initTransientValues();
+            }
+
+            show();
+            
             return true;
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();

@@ -1,5 +1,7 @@
 package com.rose.management;
 
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.rose.actors.Fighter;
 import com.rose.ui.TouchControlsUI;
@@ -15,11 +17,13 @@ public class GameState implements Serializable {
     private final boolean syncTest;
     private int frameCount;
     private final int playerNumber;
+    transient ShapeRenderer sr;
 
     public GameState(Fighter[] fighters, int playerNumber, boolean syncTest) {
         this.fighters = fighters;
         this.playerNumber = playerNumber;
         this.syncTest = syncTest;
+        sr = new ShapeRenderer();
     }
 
     public void update(float delta, int[] inputs) {
@@ -48,6 +52,7 @@ public class GameState implements Serializable {
 
     public byte[] saveGameState() {
         byte[] data = null;
+        printState();
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             ObjectOutputStream out;
             out = new ObjectOutputStream(bos);
@@ -60,9 +65,6 @@ public class GameState implements Serializable {
         return data;
     }
 
-    public void loadGameState() {
-    }
-
     public int getFrameNumber() {
         return frameCount;
     }
@@ -73,5 +75,15 @@ public class GameState implements Serializable {
 
     public boolean gameOver() {
         return fighters[0].getHealth() <= 0 || fighters[1].getHealth() <= 0;
+    }
+
+    public void printState() {
+        for(int i = 0; i < fighters.length; i++) {
+            System.out.printf("Player %d:\n\tPosition: (x: %.2f, y: %.2f)\n",
+                    (i + 1),
+                    fighters[i].getAnchor().x,
+                    fighters[i].getAnchor().y);
+            System.out.printf("\tAnimation State: %s\n", fighters[i].getAnimationState());
+        }
     }
 }

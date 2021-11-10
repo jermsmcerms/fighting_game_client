@@ -473,26 +473,9 @@ public class UdpProto implements IPollSink {
         return udp == null;
     }
 
-    int previous_frame;
     public void setLocalFrameNumber(int local_frame) {
         long remote_frame = last_received_input.getFrame() + (round_trip_time * 60 / 1000);
         local_frame_advantage = (int)(remote_frame - local_frame);
-        if(last_received_input.getFrame() != previous_frame) {
-			previous_frame = last_received_input.getFrame();
-			System.out.printf(
-				"last rec frame: %d"                    +
-				" round trip time: (%d ms, %d frames)"  +
-				" local frame: %d"                      +
-				" remote frame: %d"                     +
-				" local frame advantage: %d\n",
-                last_received_input.getFrame(),
-                round_trip_time,
-                (round_trip_time * 60 / 1000),
-                local_frame,
-                remote_frame,
-                local_frame_advantage
-			);
-		}
     }
 
     public int recommendFrameDelay() {

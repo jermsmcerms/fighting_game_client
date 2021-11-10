@@ -167,6 +167,14 @@ public class Ryu extends Fighter {
     }
 
     @Override
+    public void initTransientValues() {
+        super.initTransientValues();
+        sprite_sheet = new TextureAtlas(Gdx.files.internal("characters/ryu/ryu_sprite_sheet.atlas"));
+        defineAnimationLengths();
+        defineKeyFrames();
+    }
+
+    @Override
     public void keepInBounds() {
         float offset = anchor_point.x - anim_anchor.x;
         int offset_lookup;

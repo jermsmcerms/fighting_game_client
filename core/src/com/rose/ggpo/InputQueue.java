@@ -47,8 +47,6 @@ public class InputQueue {
         int new_frame = advanceQueueHead(gameInput.getFrame());
         if(new_frame != GameInput.NULL_FRAME) {
             addDelayedInputToQueue(gameInput, new_frame);
-        } else {
-            System.out.println("new frame not added: " + new_frame);
         }
 
         gameInput.setFrame(new_frame);
@@ -75,13 +73,10 @@ public class InputQueue {
         last_added_frame = frame_number;
 
         if(prediction.getFrame() != GameInput.NULL_FRAME) {
-            System.out.println("prediction frame: " + prediction.getFrame() +
-                    " incoming frame: " + frame_number);
 //            assert(prediction.getFrame() == frame_number);
             if( first_incorrect_frame == GameInput.NULL_FRAME &&
                 !prediction.equals(gameInput)) {
                 first_incorrect_frame = frame_number;
-                System.out.println("marking first incorrect frame: " + first_incorrect_frame);
             }
 
             if( prediction.getFrame() == last_frame_requested &&

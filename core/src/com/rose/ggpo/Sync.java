@@ -107,10 +107,12 @@ public class Sync {
             System.out.println("skipping nop");
             return;
         }
-        System.out.println("loading frame: " + frame);
         savedState.head = findSavedFrameIndex(frame);
         SavedState.SavedFrame state = savedState.frames[savedState.head];
 
+        System.out.printf("loading frame: %d, checksum: %s\n",
+                savedState.frames[savedState.head].frame,
+                savedState.frames[savedState.head].checkSum);
         callbacks.loadFrame(state.buf, state.cbuf);
         frame_count = state.frame;
         savedState.head = (savedState.head + 1) % savedState.frames.length;
